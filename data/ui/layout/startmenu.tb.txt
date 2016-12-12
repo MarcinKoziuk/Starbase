@@ -1,0 +1,15 @@
+WindowInfo
+	title Starbase
+	position 100 100
+	size 200 400
+TBTabContainer
+	gravity all
+	tabs
+		TBButton: text: "Game"
+	TBLayout: axis: y
+		TBButton
+			id start_game
+			text Start
+		TBButton
+			id quit
+			text Quit
