@@ -21,6 +21,6 @@ public:
     std::shared_ptr<const T> Load(const std::string& path);
 };
 
-#include "inline/resourceloader.inl"
+#include "detail/resourceloader.inl"
 
 } // namespace Starbase

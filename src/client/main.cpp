@@ -26,6 +26,25 @@ static std::unique_ptr<tb::TBRenderer> InitUI();
 static void ShutdownUI();
 static void MainLoop(UI::MainWindow& mainWindow, Display& display, IRenderer& renderer);
 
+#include <starbase/game/entity/entity.hpp>
+#include <starbase/game/component/body.hpp>
+#include <starbase/game/component/transform.hpp>
+
+
+
+void testecs()
+{
+	EntityManager<Body, Transform> em;
+
+	std::vector<Body>& mahBodies = em.GetComponents<Body>();
+	Body body1;
+	body1.mass = 9;
+	mahBodies.push_back(body1);
+
+	Body& theBody = em.GetComponent<Body>(0);
+	LOG(info) << "The mass is " << theBody.mass;
+}
+
 int main(int argc, char* argv[])
 {
 	std::unique_ptr<IFilesystem> filesystem = InitFilesystem();
@@ -33,6 +52,8 @@ int main(int argc, char* argv[])
 	std::unique_ptr<IRenderer> renderer = InitRenderer(*filesystem);
 	std::unique_ptr<tb::TBRenderer> tbRenderer = InitUI();
 	auto mainWindow = std::make_unique<UI::MainWindow>(display->GetWindowSize(), *tbRenderer);
+
+	testecs();
 
 	//////////
 	MainLoop(*mainWindow, *display, *renderer);
