@@ -1,79 +1,43 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
-#include <unordered_map>
-#include <tuple>
-#include <functional>
-
-#include "detail/tmp.hpp"
+#include <bitset>
 
 namespace Starbase {
 
-typedef std::uint32_t entity_id;
+typedef std::uint64_t entity_id;
+
+static constexpr int MAX_COMPONENTS = 16;
 
 struct Entity {
-    entity_id id;
-    bool dead : 1;
+	entity_id id;
+	std::bitset<MAX_COMPONENTS> bitset;
+	bool alive : 1;
+	bool needsToDie : 1;
+	bool isnew : 1;
+
+	Entity(entity_id id)
+		: id(id)
+		, alive(true)
+		, needsToDie(false)
+		, isnew(true)
+	{}
+
+	Entity()
+		: id(0)
+		, alive(false)
+		, needsToDie(false)
+		, isnew(false)
+	{}
 };
 
-template<typename T>
-static int component_index();
-
-
-template<typename ...ComponentTypes>
-class EntityManager {
-private:
-    std::vector<Entity> m_entities;
-
-	typedef std::tuple<std::vector<ComponentTypes>...> component_grid;
-	component_grid m_components;
-
-    // keeps track of each entity's index in m_entities
-    std::unordered_map<entity_id, int> m_entityIndex;
-
-	static int s_componentTypeIndexCounter;
-
-	template<typename C>
-	static int component_index()
-	{
-		static int index = s_componentTypeIndexCounter++;
-		return index;
-	}
-
-public:
-    EntityManager()
-    {
-		int typeindexes[] = { component_index<ComponentTypes>()... };
-
-#ifndef NDEBUG
-		// ensure they are sequential and start with zero
-		for (int i = 0; i < (sizeof(typeindexes) / sizeof(int)); i++) {
-			assert(typeindexes[i] == i);
-		}
-#else
-		(void)typeindexes;
-#endif
-    }
-
-	template <typename C>
-	std::vector<C>& GetComponents()
-	{
-		return TMP::GetTupleVector<C, component_grid>(m_components);
-		/*return TMP::MatchingField<0, C, component_grid,
-			TMP::VectorOfType<0, C, component_grid>::value>::get(m_components);*/
-	}
-
-	template<typename C>
-	C& GetComponent(std::size_t index)
-	{
-		return GetComponents<C>()[index];
-	}
-};
-
-template<typename ...ComponentTypes>
-int EntityManager<ComponentTypes...>::s_componentTypeIndexCounter = 0;
-
-#include "detail/component_index.inl"
+static bool operator==(const Entity& a, const Entity& b)
+{
+	return a.id == b.id
+		&& a.bitset == b.bitset
+		&& a.alive == b.alive
+		&& a.needsToDie == b.needsToDie
+		&& a.isnew == b.isnew;
+}
 
 } // namespace Starbase

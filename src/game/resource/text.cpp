@@ -3,7 +3,7 @@
 namespace Starbase {
 namespace Resource {
 
-std::shared_ptr<Text> Text::placeholder = std::make_shared<Text>();
+std::shared_ptr<const Text> Text::placeholder = std::make_shared<Text>();
 
 std::size_t Text::CalculateSize() const
 {

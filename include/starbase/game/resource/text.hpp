@@ -13,7 +13,7 @@ class Text : public IResource {
 private:
     std::string m_text;
 
-	static std::shared_ptr<Text> placeholder;
+	static std::shared_ptr<const Text> placeholder;
 
 public:
     virtual ~Text() {}

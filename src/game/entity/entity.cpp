@@ -2,6 +2,4 @@
 
 namespace Starbase {
 
-int g_component_index_counter = 0;
-
 }

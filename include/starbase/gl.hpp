@@ -1,5 +1,9 @@
 #pragma once
 
+#if defined(_WIN32)
+	#include <starbase/windows.hpp>
+#endif
+
 #if defined(_WIN32) \
     || defined(__linux) \
     || defined(__FreeBSD__) \
@@ -8,8 +12,6 @@
     || defined(__DragonFly__)
 	#define STARBASE_USING_GLEW 1
 	#include <GL/glew.h>
-#include <windows.h>
-#include <GL/gl.h>
 #elif defined(__APPLE__)
     #include <OpenGL/gl.h>
 #elif defined(EMSCRIPTEN)

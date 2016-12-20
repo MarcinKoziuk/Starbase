@@ -10,8 +10,12 @@
 #include <tb/tb_font_renderer.h>
 
 #include <starbase/starbase.hpp>
+#include <starbase/game/id.hpp>
 #include <starbase/game/logging.hpp>
 #include <starbase/game/fs/filesystem_physfs.hpp>
+#include <starbase/game/resource/resourceloader.hpp>
+#include <starbase/game/resource/text.hpp>
+#include <starbase/cgame/resource/model.hpp>
 #include <starbase/cgame/display.hpp>
 #include <starbase/cgame/renderer/renderer_gl2.hpp>
 #include <starbase/cgame/ui/mainwindow.hpp>
@@ -24,26 +28,66 @@ static std::unique_ptr<Display> InitDisplay();
 static std::unique_ptr<IRenderer> InitRenderer(IFilesystem& filesystem);
 static std::unique_ptr<tb::TBRenderer> InitUI();
 static void ShutdownUI();
-static void MainLoop(UI::MainWindow& mainWindow, Display& display, IRenderer& renderer);
+static void MainLoop(UI::MainWindow& mainWindow, Display& display, IRenderer& renderer, IFilesystem& fs);
 
 #include <starbase/game/entity/entity.hpp>
+#include <starbase/game/entity/entitymanager.hpp>
 #include <starbase/game/component/body.hpp>
+#include <starbase/cgame/component/renderable.hpp>
 #include <starbase/game/component/transform.hpp>
 
+using CGameParams = EParams<Body, Transform, Renderable>;
+using EntityManager = TEntityManager<CGameParams>;
 
+class Scene {
+private:
+	EntityManager m_entityManager;
+	ResourceLoader m_resourceLoader;
+	IFilesystem& m_fs;
+	IRenderer& m_renderer;
 
-void testecs()
-{
-	EntityManager<Body, Transform> em;
+public:
+	Scene(IRenderer& renderer, IFilesystem& fs)
+		: m_renderer(renderer)
+		, m_fs(fs)
+		, m_resourceLoader(fs)
+	{
+		std::shared_ptr<const Resource::Model> errorModel = m_resourceLoader.Load<Resource::Model>("blah");
 
-	std::vector<Body>& mahBodies = em.GetComponents<Body>();
-	Body body1;
-	body1.mass = 9;
-	mahBodies.push_back(body1);
+		std::tuple<Entity&, Transform&, Renderable&> test = m_entityManager.CreateEntity<Transform, Renderable>();
+		Entity& testEnt = std::get<0>(test);
+		Transform& testTrans = std::get<1>(test);
+		Renderable& testRend = std::get<2>(test);
 
-	Body& theBody = em.GetComponent<Body>(0);
-	LOG(info) << "The mass is " << theBody.mass;
-}
+		testRend.modelId = ID("blah");
+		testTrans.rot = 0.7f;
+		testTrans.scale = glm::vec2(200.f, 200.f);
+		testTrans.pos = glm::vec2(140.f, 140.f);
+
+		std::tuple<Entity&, Transform&, Renderable&> pest = m_entityManager.CreateEntity<Transform, Renderable>();
+		Entity& pestEnt = std::get<0>(pest);
+		Transform& pestTrans = std::get<1>(pest);
+		Renderable& pestRend = std::get<2>(pest);
+
+		pestRend.modelId = ID("blah");
+		pestTrans.rot = 0.f;
+		pestTrans.scale = glm::vec2(50.f, 50.f);
+		pestTrans.pos = glm::vec2(0.f, 0.f);
+
+	}
+
+	void Update()
+	{
+		m_entityManager.Refresh();
+	}
+
+	void Draw()
+	{
+		m_entityManager.ForEachEntityWithComponents<Transform, Renderable>([this](Entity& ent, Transform& trans, Renderable& rend) {
+			m_renderer.Draw(ent, trans, rend, m_resourceLoader);
+		});
+	}
+};
 
 int main(int argc, char* argv[])
 {
@@ -53,10 +97,8 @@ int main(int argc, char* argv[])
 	std::unique_ptr<tb::TBRenderer> tbRenderer = InitUI();
 	auto mainWindow = std::make_unique<UI::MainWindow>(display->GetWindowSize(), *tbRenderer);
 
-	testecs();
-
 	//////////
-	MainLoop(*mainWindow, *display, *renderer);
+	MainLoop(*mainWindow, *display, *renderer, *filesystem);
 	//////////
 
 	delete mainWindow.release();
@@ -73,8 +115,10 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-static void MainLoop(UI::MainWindow& mainWindow, Display& display, IRenderer& renderer)
+static void MainLoop(UI::MainWindow& mainWindow, Display& display, IRenderer& renderer, IFilesystem& fs)
 {
+	Scene scene(renderer, fs);
+
 	bool running = true;
 	while (running) {
 		SDL_Event event;
@@ -91,7 +135,10 @@ static void MainLoop(UI::MainWindow& mainWindow, Display& display, IRenderer& re
 			}
 		}
 
-		renderer.DrawTest();
+		scene.Update();
+
+		//renderer.DrawTest();
+		scene.Draw();
 		mainWindow.Process();
 		mainWindow.Render();
 

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstddef>
+#include <numeric>
+
 namespace Starbase {
 
 class IResource {
@@ -10,5 +13,25 @@ public:
 
     virtual const char* GetResourceName() const = 0;
 };
+
+template<typename T>
+std::size_t PodContainerSize(const T& container)
+{
+	return sizeof(T::value_type) * container.size();
+}
+
+// T must have function CalculateSize() (it does not need to inherit IResource)
+template<typename T>
+std::size_t ResourceContainerSize(const T& container)
+{
+	return std::accumulate(
+		container.begin(),
+		container.end(),
+		std::size_t(0L),
+		[](std::size_t v, const typename T::value_type& e) {
+			return v + e.CalculateSize();
+		}
+	);
+}
 
 } // namespace Starbase
