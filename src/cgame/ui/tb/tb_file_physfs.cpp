@@ -20,7 +20,7 @@ public:
 
 	virtual long Size()
 	{
-		return PHYSFS_fileLength(file);
+		return static_cast<long>(PHYSFS_fileLength(file));
 	}
 
 	virtual size_t Read(void *buf, size_t elemSize, size_t count)

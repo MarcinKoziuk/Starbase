@@ -1,11 +1,14 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
+
+#include <starbase/cgame/resource/model.hpp>
 
 namespace Starbase {
 
 struct Renderable {
-	std::uint32_t modelId;
+	id_t modelId;
 };
 
 } // namespace Starbase

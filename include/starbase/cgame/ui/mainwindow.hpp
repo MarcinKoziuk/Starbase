@@ -46,8 +46,8 @@ public:
     ~MainWindow();
 
 	glm::tvec2<int> GetSize() const;
-    void OnResized(glm::vec2 size);
-    void Process();
+    void OnResized(glm::tvec2<int> size);
+    void Update();
     void Render();
     bool MainWindow::HandleSDLEvent(SDL_Event& event);
 

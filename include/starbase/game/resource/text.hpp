@@ -28,8 +28,10 @@ public:
 
     static std::shared_ptr<const Text> Placeholder();
 
-    static std::shared_ptr<const Text> Create(const std::string& filename, IFilesystem& filesystem);
+    static std::shared_ptr<const Text> Create(id_t id, IFilesystem& filesystem);
 };
+
+typedef std::shared_ptr<const Text> TextPtr;
 
 } // namespace Resource
 } // namespace Starbase

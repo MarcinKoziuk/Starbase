@@ -42,8 +42,14 @@ file(GLOB STARBASE_H "include/starbase/*.hpp")
 
 file(GLOB_RECURSE STARBASE_DATA_FILES "data/*")
 
-file(GLOB_RECURSE EXTLIBS_GAME_H "extlibs/physfs/include/*.hpp")
-file(GLOB_RECURSE EXTLIBS_GAME_SRC "extlibs/physfs/src/*.cpp")
+file(GLOB_RECURSE EXTLIBS_GAME_H
+	"extlibs/physfs/include/*.hpp"
+	"extlibs/nanosvg/nanosvg.h"
+)
+file(GLOB_RECURSE EXTLIBS_GAME_SRC
+	"extlibs/physfs/src/*.cpp"
+	"extlibs/nanosvg/nanosvg.c"
+)
 
 # --- Targets ---
 add_library(${STARBASE_GAME_LIBRARY} STATIC
@@ -105,6 +111,7 @@ endforeach()
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3 /MP /fp:fast")
 	#add_definitions(/utf-8 /wd4828 /EHsc) ???
+	add_definitions(/wd4996)
 else()
     set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Wstrict-aliasing -pedantic -ffast-math")
 endif()
@@ -132,6 +139,7 @@ find_package(TurboBadger REQUIRED)
 # --- Include directories ---
 include_directories("include")
 include_directories("extlibs/physfs/include")
+include_directories("extlibs/nanosvg")
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 include_directories(SYSTEM ${OPENGL_INCLUDE_DIR})
 include_directories(SYSTEM ${GLEW_INCLUDE_DIR})

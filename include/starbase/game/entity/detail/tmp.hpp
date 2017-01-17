@@ -75,19 +75,6 @@ void ForEach(Functor& f)
 }
 
 // overload for single argument
-/*template<typename T>
-bool And(T&& f) {
-	return f();
-}
-
-// extract the first parameter then recursively call self for others
-template<typename U, typename... T>
-bool And(U&& f, T&&... t) {
-	// this will short-circuit...
-	return f() && And(std::forward<T>(t)...);
-}
-*/
-// overload for single argument
 template<typename B>
 bool And(B b) {
 	return b;

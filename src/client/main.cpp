@@ -15,26 +15,25 @@
 #include <starbase/game/fs/filesystem_physfs.hpp>
 #include <starbase/game/resource/resourceloader.hpp>
 #include <starbase/game/resource/text.hpp>
+#include <starbase/game/entity/entity.hpp>
+#include <starbase/game/entity/entitymanager.hpp>
+#include <starbase/game/component/body.hpp>
+#include <starbase/game/component/transform.hpp>
 #include <starbase/cgame/resource/model.hpp>
 #include <starbase/cgame/display.hpp>
-#include <starbase/cgame/renderer/renderer_gl2.hpp>
+#include <starbase/cgame/renderer/renderer.hpp>
 #include <starbase/cgame/ui/mainwindow.hpp>
 #include <starbase/cgame/ui/renderer/tb_renderer_gl.hpp>
+#include <starbase/cgame/component/renderable.hpp>
 
 using namespace Starbase;
 
 static std::unique_ptr<IFilesystem> InitFilesystem();
 static std::unique_ptr<Display> InitDisplay();
-static std::unique_ptr<IRenderer> InitRenderer(IFilesystem& filesystem);
 static std::unique_ptr<tb::TBRenderer> InitUI();
 static void ShutdownUI();
-static void MainLoop(UI::MainWindow& mainWindow, Display& display, IRenderer& renderer, IFilesystem& fs);
+static void MainLoop(UI::MainWindow& mainWindow, Display& display, IFilesystem& fs);
 
-#include <starbase/game/entity/entity.hpp>
-#include <starbase/game/entity/entitymanager.hpp>
-#include <starbase/game/component/body.hpp>
-#include <starbase/cgame/component/renderable.hpp>
-#include <starbase/game/component/transform.hpp>
 
 using CGameParams = EParams<Body, Transform, Renderable>;
 using EntityManager = TEntityManager<CGameParams>;
@@ -43,26 +42,49 @@ class Scene {
 private:
 	EntityManager m_entityManager;
 	ResourceLoader m_resourceLoader;
+	Renderer m_renderer;
+	Display& m_display;
 	IFilesystem& m_fs;
-	IRenderer& m_renderer;
 
 public:
-	Scene(IRenderer& renderer, IFilesystem& fs)
-		: m_renderer(renderer)
+	Scene(Display& display, IFilesystem& fs)
+		: m_display(display)
 		, m_fs(fs)
 		, m_resourceLoader(fs)
+		, m_renderer(display, fs, m_resourceLoader)
 	{
-		std::shared_ptr<const Resource::Model> errorModel = m_resourceLoader.Load<Resource::Model>("blah");
+		m_renderer.Init();
+
+		m_entityManager.entityAdded.connect([this](const Entity& ent) {
+			if (m_entityManager.HasComponent<Renderable>(ent)) {
+				m_renderer.RenderableAdded(m_entityManager.GetComponent<Renderable>(ent));
+			}
+		});
+		m_entityManager.entityWillBeRemoved.connect([this](const Entity& ent) {
+			if (m_entityManager.HasComponent<Renderable>(ent)) {
+				m_renderer.RenderableRemoved(m_entityManager.GetComponent<Renderable>(ent));
+			}
+		});
+		m_entityManager.componentAdded.connect([this](const Entity& ent, Entity::component_bitset oldComponents) {
+			if (m_entityManager.HasComponent<Renderable>(ent) && !m_entityManager.HasComponent<Renderable>(oldComponents)) {
+				m_renderer.RenderableAdded(m_entityManager.GetComponent<Renderable>(ent));
+			}
+		});
+		m_entityManager.componentWillBeRemoved.connect([this](const Entity& ent, Entity::component_bitset newComponents) {
+			if (m_entityManager.HasComponent<Renderable>(ent) && !m_entityManager.HasComponent<Renderable>(newComponents)) {
+				m_renderer.RenderableRemoved(m_entityManager.GetComponent<Renderable>(ent));
+			}
+		});
 
 		std::tuple<Entity&, Transform&, Renderable&> test = m_entityManager.CreateEntity<Transform, Renderable>();
 		Entity& testEnt = std::get<0>(test);
 		Transform& testTrans = std::get<1>(test);
 		Renderable& testRend = std::get<2>(test);
 
-		testRend.modelId = ID("blah");
+		testRend.modelId = ID("models/ships/interceptor-0");
 		testTrans.rot = 0.7f;
-		testTrans.scale = glm::vec2(200.f, 200.f);
-		testTrans.pos = glm::vec2(140.f, 140.f);
+		testTrans.scale = glm::vec2(1.f, 1.f);
+		testTrans.pos = glm::vec2(20.f, 1.f);
 
 		std::tuple<Entity&, Transform&, Renderable&> pest = m_entityManager.CreateEntity<Transform, Renderable>();
 		Entity& pestEnt = std::get<0>(pest);
@@ -73,7 +95,6 @@ public:
 		pestTrans.rot = 0.f;
 		pestTrans.scale = glm::vec2(50.f, 50.f);
 		pestTrans.pos = glm::vec2(0.f, 0.f);
-
 	}
 
 	void Update()
@@ -81,11 +102,13 @@ public:
 		m_entityManager.Refresh();
 	}
 
-	void Draw()
+	void Render()
 	{
+		m_renderer.BeginDraw();
 		m_entityManager.ForEachEntityWithComponents<Transform, Renderable>([this](Entity& ent, Transform& trans, Renderable& rend) {
-			m_renderer.Draw(ent, trans, rend, m_resourceLoader);
+			m_renderer.Draw(ent, trans, rend);
 		});
+		m_renderer.EndDraw();
 	}
 };
 
@@ -93,12 +116,11 @@ int main(int argc, char* argv[])
 {
 	std::unique_ptr<IFilesystem> filesystem = InitFilesystem();
 	std::unique_ptr<Display> display = InitDisplay();
-	std::unique_ptr<IRenderer> renderer = InitRenderer(*filesystem);
 	std::unique_ptr<tb::TBRenderer> tbRenderer = InitUI();
 	auto mainWindow = std::make_unique<UI::MainWindow>(display->GetWindowSize(), *tbRenderer);
 
 	//////////
-	MainLoop(*mainWindow, *display, *renderer, *filesystem);
+	MainLoop(*mainWindow, *display, *filesystem);
 	//////////
 
 	delete mainWindow.release();
@@ -106,18 +128,15 @@ int main(int argc, char* argv[])
 	ShutdownUI();
 	delete tbRenderer.release();
 
-	renderer->Shutdown();
-	delete renderer.release();
-
 	display->Shutdown();
 	filesystem->Shutdown();
 
 	return 0;
 }
 
-static void MainLoop(UI::MainWindow& mainWindow, Display& display, IRenderer& renderer, IFilesystem& fs)
+static void MainLoop(UI::MainWindow& mainWindow, Display& display, IFilesystem& fs)
 {
-	Scene scene(renderer, fs);
+	Scene scene(display, fs);
 
 	bool running = true;
 	while (running) {
@@ -136,10 +155,9 @@ static void MainLoop(UI::MainWindow& mainWindow, Display& display, IRenderer& re
 		}
 
 		scene.Update();
+		scene.Render();
 
-		//renderer.DrawTest();
-		scene.Draw();
-		mainWindow.Process();
+		mainWindow.Update();
 		mainWindow.Render();
 
 		display.Swap();
@@ -168,18 +186,6 @@ static std::unique_ptr<Display> InitDisplay()
 	}
 
 	return std::move(display);
-}
-
-static std::unique_ptr<IRenderer> InitRenderer(IFilesystem& filesystem)
-{
-	auto renderer = std::make_unique<RendererGL2>(filesystem);
-
-	if (!renderer->Init()) {
-		std::abort();
-		return nullptr;
-	}
-
-	return std::move(renderer);
 }
 
 static std::unique_ptr<tb::TBRenderer> InitUI()

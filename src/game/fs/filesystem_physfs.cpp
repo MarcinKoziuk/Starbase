@@ -1,6 +1,5 @@
 #include <cstdlib>
 #include <cassert>
-#include <algorithm>
 
 #include <physfs.h>
 #include <physfs.hpp>
@@ -67,6 +66,8 @@ bool FilesystemPhysFS::Init()
 		LOG(trace) << path;
 	}
 
+	ReloadIdPaths();
+
 	m_isInitialized = true;
 	return true;
 }
@@ -77,6 +78,21 @@ void FilesystemPhysFS::Shutdown()
 	if (!result) {
 		LOG(error) << "Failed to cleanly shut down PhysFS";
 	}
+}
+
+#define ID_PATH_CHECK(return_good, return_bad) \
+	std::string path; \
+	bool exists = GetPathForId(id, path); \
+	if (exists) \
+		return return_good; \
+	else { \
+		LOG(error) << "no path with id " << id << " found"; \
+		return return_bad; \
+	}
+
+std::size_t FilesystemPhysFS::GetLength(id_t id)
+{
+	ID_PATH_CHECK(GetLength(path), 0L)
 }
 
 std::size_t FilesystemPhysFS::GetLength(const std::string& path)
@@ -90,6 +106,11 @@ std::size_t FilesystemPhysFS::GetLength(const std::string& path)
 	else {
 		return 0L;
 	}
+}
+
+bool FilesystemPhysFS::ReadBytes(id_t id, std::vector<std::uint8_t>* destVector)
+{
+	ID_PATH_CHECK(ReadBytes(path, destVector), false)
 }
 
 bool FilesystemPhysFS::ReadBytes(const std::string& path, std::vector<std::uint8_t>* destVector)
@@ -111,6 +132,11 @@ bool FilesystemPhysFS::ReadBytes(const std::string& path, std::vector<std::uint8
 		LOG(error) << "Could not open: " << path;
 		return false;
 	}
+}
+
+bool FilesystemPhysFS::ReadString(id_t id, std::string* destString)
+{
+	ID_PATH_CHECK(ReadString(path, destString), false)
 }
 
 bool FilesystemPhysFS::ReadString(const std::string& path, std::string* destString)
@@ -135,10 +161,13 @@ bool FilesystemPhysFS::ReadString(const std::string& path, std::string* destStri
 	}
 }
 
+std::unique_ptr<std::istream> FilesystemPhysFS::OpenAsStream(id_t id)
+{
+	ID_PATH_CHECK(OpenAsStream(path), nullptr)
+}
+
 std::unique_ptr<std::istream> FilesystemPhysFS::OpenAsStream(const std::string& path)
 {
-	assert(m_isInitialized);
-
 	PHYSFS_File* file = PHYSFS_openRead(path.c_str());
 	if (file) {
 		return std::unique_ptr<PhysFS::ifstream>(new PhysFS::ifstream(file));
@@ -146,6 +175,49 @@ std::unique_ptr<std::istream> FilesystemPhysFS::OpenAsStream(const std::string& 
 	else {
 		LOG(error) << "Could not open: " << path;
 		return nullptr;
+	}
+}
+
+void FilesystemPhysFS::PathEnumCallback(void* self_, const char* root_, const char* filename)
+{
+	FilesystemPhysFS* self = reinterpret_cast<FilesystemPhysFS*>(self_);
+
+	std::string root(root_);
+	std::string path = root.empty() ? filename : root + "/" + filename;
+	const std::uint32_t id = ID(path.c_str());
+	assert(self->m_idPaths.count(id) == 0 && "ID hash collision!");
+	self->m_idPaths[id] = path;
+
+	PHYSFS_enumerateFilesCallback(path.c_str(), &PathEnumCallback, self);
+}
+
+void FilesystemPhysFS::ReloadIdPaths()
+{
+	m_idPaths.clear();
+
+	PHYSFS_enumerateFilesCallback("", &PathEnumCallback, this);
+
+	LOG(trace) << "Enumerated " << m_idPaths.size() << " files in search path";
+}
+
+bool FilesystemPhysFS::GetPathForId(id_t id, std::string& dest)
+{
+	if (SB_LIKELY(m_idPaths.count(id))) {
+		dest = m_idPaths.at(id);
+		return true;
+	}
+	else {
+		// Check again, maybe something has changed in the data directory (development)
+		LOG(trace) << "Could NOT find path for id " << id << "; re-enumerating paths...";
+		ReloadIdPaths();
+
+		if (m_idPaths.count(id)) {
+			dest = m_idPaths.at(id);
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
 }
 

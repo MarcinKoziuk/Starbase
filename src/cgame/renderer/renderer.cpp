@@ -2,14 +2,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <SDL2/SDL.h> //temp
-
 #include <starbase/game/logging.hpp>
 #include <starbase/game/entity/entity.hpp>
 #include <starbase/game/component/transform.hpp>
 #include <starbase/game/resource/resourceloader.hpp>
+#include <starbase/cgame/display.hpp>
 #include <starbase/cgame/component/renderable.hpp>
-#include <starbase/cgame/renderer/renderer_gl2.hpp>
+#include <starbase/cgame/renderer/renderer.hpp>
 
 #ifndef NDEBUG
 #define GLCALL(CALL)													\
@@ -40,20 +39,22 @@ static void ShowInfoLog(
 	LOG(error) << log;
 }
 
-RendererGL2::RendererGL2(IFilesystem& filesystem)
+Renderer::Renderer(Display& display, IFilesystem& filesystem, ResourceLoader& rl)
 	: m_filesystem(filesystem)
+	, m_display(display)
+	, m_resourceLoader(rl)
 {}
 
-GLuint RendererGL2::MakeBuffer(GLenum target, const void* data, GLsizei size, GLenum usage)
+GLuint Renderer::MakeVBO(GLenum target, const void* data, GLsizei size, GLenum usage)
 {
-	GLuint buffer;
-	GLCALL(glGenBuffers(1, &buffer));
-	GLCALL(glBindBuffer(target, buffer));
+	GLuint vbo;
+	GLCALL(glGenBuffers(1, &vbo));
+	GLCALL(glBindBuffer(target, vbo));
 	GLCALL(glBufferData(target, size, data, usage));
-	return buffer;
+	return vbo;
 }
 
-GLuint RendererGL2::MakeShader(GLenum type, const char* filename)
+GLuint Renderer::MakeShader(GLenum type, const char* filename)
 {
 	std::string str;
 
@@ -81,7 +82,7 @@ GLuint RendererGL2::MakeShader(GLenum type, const char* filename)
 	return shader;
 }
 
-GLuint RendererGL2::MakeProgram(GLuint vertexShader, GLuint fragmentShader)
+GLuint Renderer::MakeProgram(GLuint vertexShader, GLuint fragmentShader)
 {
 	GLuint program;
 	GLCALL(program = glCreateProgram());
@@ -100,7 +101,7 @@ GLuint RendererGL2::MakeProgram(GLuint vertexShader, GLuint fragmentShader)
 	return program;
 }
 
-bool RendererGL2::InitPathShader()
+bool Renderer::InitPathShader()
 {
 	m_pathShader.vertexShader = MakeShader(GL_VERTEX_SHADER, "shaders/simple.v.glsl");
 	if (!m_pathShader.vertexShader)
@@ -122,80 +123,41 @@ bool RendererGL2::InitPathShader()
 	return true;
 }
 
-bool RendererGL2::InitPathBuffer(PathBuffer& buf, std::shared_ptr<const Resource::Model>& model, int pathIndex)
+bool Renderer::InitModelGL(id_t modelId, ModelGL* modelGl)
 {
-	const Resource::Model::Path& path = model->GetPaths()[pathIndex];
-	const GLfloat* positions = reinterpret_cast<const GLfloat*>(&path.positions.front());
-	const GLsizei positionsSize = sizeof(GLfloat) * 2 * path.positions.size();
+	modelGl->modelRef = m_resourceLoader.Load<Resource::Model>(modelId);
 
-	buf.vertexBuffer = MakeBuffer(GL_ARRAY_BUFFER, positions, positionsSize, GL_DYNAMIC_DRAW);
-	buf.pathIndex = pathIndex;
-	buf.model = model;
+	const Resource::Model& model = *modelGl->modelRef;
+	for (const Resource::Model::Path& path : model.GetPaths()) {
+		const GLfloat* positions = reinterpret_cast<const GLfloat*>(&path.points.front());
+		const GLsizei numPositions = static_cast<GLsizei>(sizeof(GLfloat) * 2 * path.points.size());
 
-	return true;
-}
-
-bool RendererGL2::InitModel(std::uint32_t modelId, std::shared_ptr<const Resource::Model>& model)
-{
-	std::size_t numPaths = model->GetPaths().size();
-	std::vector<PathBuffer>& pathBuffers = m_pathBuffers.emplace(modelId, std::vector<PathBuffer>()).first->second;
-	for (int i = 0; i < numPaths; i++) {
-		const Resource::Model::Path& path = model->GetPaths()[i];
-		pathBuffers.emplace_back();
-		PathBuffer& buf = pathBuffers.back();
-
-		InitPathBuffer(buf, model, i);
+		GLuint vbo = MakeVBO(GL_ARRAY_BUFFER, positions, numPositions, GL_STATIC_DRAW);
+		modelGl->pathVBOs.push_back(vbo);
 	}
 
 	return true;
 }
 
-bool RendererGL2::Init()
+bool Renderer::Init()
 {
-	static const GLfloat vertices[] = {
-		-0.4f, -0.4f,
-		0.4f, -0.4f,
-		-0.4f,  0.4f,
-		0.4f,  0.4f
-	};
-	static const GLushort indexes[] = { 0, 1, 2, 3 };
-
-	m_vertexBuffer = MakeBuffer(GL_ARRAY_BUFFER, vertices, sizeof(vertices), GL_STREAM_DRAW);
-	m_indexesBuffer = MakeBuffer(GL_ARRAY_BUFFER, indexes, sizeof(indexes), GL_STREAM_DRAW);
-
-	m_vertexShader = MakeShader(GL_VERTEX_SHADER, "shaders/simple.v.glsl");
-	if (!m_vertexShader)
-		return false;
-
-	m_fragmentShader = MakeShader(GL_FRAGMENT_SHADER, "shaders/simple.f.glsl");
-	if (!m_fragmentShader)
-		return false;
-
-	m_program = MakeProgram(m_vertexShader, m_fragmentShader);
-	if (!m_program)
-		return false;
-
-	GLCALL(m_attributes.position = glGetAttribLocation(m_program, "position"));
-
-	InitPathShader();
-
-	return true;
+	return InitPathShader();
 }
 
-void RendererGL2::Shutdown()
+void Renderer::Shutdown()
 {}
 
-static glm::mat4 CalcMatrix(Transform& trans)
+glm::mat4 Renderer::CalcMatrix(const Transform& trans)
 {
 	glm::mat4 model, view, projection;
 
-	float aspect = 1280.f / 800.f;
-	//projection = glm::ortho(-aspect,  -1.0f, aspect, 1.0f, -1.0f, 1.0f);
+	glm::vec2 windowSize = m_display.GetWindowSize();
+	float aspect = windowSize.x / (float)windowSize.y;
+
 	projection = glm::ortho(-640.f, 640.f, -400.f, 400.f, -1.0f, 1.0f);;
 
-	model - glm::mat4(1.f);
 	model = glm::translate(model, glm::vec3(trans.pos.x, trans.pos.y, 0));
-	model = glm::rotate(model, trans.rot, glm::vec3(0.f, 0.f, 1.f)); // glm::radians(SDL_GetTicks() / 100.f)
+	model = glm::rotate(model, trans.rot, glm::vec3(0.f, 0.f, 1.f));
 	model = glm::scale(model, glm::vec3(trans.scale.x, trans.scale.y, 1.f));
 	
 	view = glm::mat4(1.f);
@@ -203,23 +165,57 @@ static glm::mat4 CalcMatrix(Transform& trans)
 	return projection * view * model;
 }
 
-void RendererGL2::Draw(Entity& ent, Transform& trans, Renderable& rend, ResourceLoader& rl)
+void Renderer::RenderableAdded(const Renderable& rend)
 {
+	const std::uint32_t modelId = rend.modelId;
+	if (!m_modelGlData.count(modelId)) {
+		auto it = m_modelGlData.emplace(modelId, ModelGL());
+		ModelGL& modelGl = it.first->second;
+		
+		bool ok = InitModelGL(modelId, &modelGl);
+		if (SB_UNLIKELY(!ok)) {
+			m_modelGlData.erase(it.first);
+		}
+	}
+}
 
-	if (SB_UNLIKELY(!m_pathBuffers.count(rend.modelId))) {
-		InitModel(rend.modelId, rl.Get<Resource::Model>(rend.modelId));
+void Renderer::RenderableRemoved(const Renderable& rend)
+{
+	m_modelGlData.erase(rend.modelId);
+}
+
+void Renderer::BeginDraw()
+{
+	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void Renderer::Draw(const Entity& ent, const Transform& trans, const Renderable& rend)
+{
+	if (SB_UNLIKELY(!m_modelGlData.count(rend.modelId))) {
+		LOG(error) << "Need to implicitly initialize renderable; this may cause a memory leak!";
+		RenderableAdded(rend);
 	}
 
+	const ModelGL& modelGl = m_modelGlData.at(rend.modelId);
+	const Resource::Model& model = *modelGl.modelRef;
+
 	GLCALL(glUseProgram(m_pathShader.program));
-	for (PathBuffer& buf : m_pathBuffers[rend.modelId]) {
-		const Resource::Model::Path& path = buf.model->GetPaths()[buf.pathIndex];
+
+	std::size_t numPaths = model.GetPaths().size();
+	assert(modelGl.pathVBOs.size() == numPaths);
+
+	for (std::size_t i = 0; i < numPaths; i++) {
+		GLuint vbo = modelGl.pathVBOs[i];
+		const Resource::Model::Path& path = model.GetPaths()[i];
+		const Resource::Model::Style& style = path.style;
 
 		glm::mat4 mvp = CalcMatrix(trans);
 
-		GLCALL(glUniform3f(m_pathShader.uniforms.color, path.color.x, path.color.y, path.color.z));
+		GLCALL(glUniform3f(m_pathShader.uniforms.color, style.color.x, style.color.y, style.color.z));
 		GLCALL(glUniformMatrix4fv(m_pathShader.uniforms.mvp, 1, GL_FALSE, glm::value_ptr(mvp)));
 
-		GLCALL(glBindBuffer(GL_ARRAY_BUFFER, buf.vertexBuffer));
+		GLCALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
 		GLCALL(glVertexAttribPointer(
 			m_pathShader.attributes.position,
 			2,
@@ -235,40 +231,14 @@ void RendererGL2::Draw(Entity& ent, Transform& trans, Renderable& rend, Resource
 		GLCALL(glDrawArrays(
 			mode,
 			0,
-			path.positions.size()
+			(GLsizei)path.points.size()
 		));
 
 		GLCALL(glDisableVertexAttribArray(m_pathShader.attributes.position));
 	}
 }
 
-void RendererGL2::DrawTest()
-{
-	GLCALL(glClearColor(1.f, 0.f, 0.f, 1.f));
-	GLCALL(glClear(GL_COLOR_BUFFER_BIT));
-
-	GLCALL(glUseProgram(m_program));
-	
-	GLCALL(glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer));
-	GLCALL(glVertexAttribPointer(
-		m_attributes.position,
-		2,
-		GL_FLOAT,
-		GL_FALSE,
-		sizeof(GLfloat) * 2,
-		0
-	));
-	GLCALL(glEnableVertexAttribArray(m_attributes.position));
-
-	GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexesBuffer));
-	GLCALL(glDrawElements(
-		GL_TRIANGLE_STRIP,
-		4,
-		GL_UNSIGNED_SHORT,
-		0
-	));
-
-	GLCALL(glDisableVertexAttribArray(m_attributes.position));
-}
+void Renderer::EndDraw()
+{}
 
 } // namespace Starbase

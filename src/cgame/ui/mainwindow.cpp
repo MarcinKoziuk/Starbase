@@ -128,12 +128,12 @@ glm::tvec2<int> MainWindow::GetSize() const
 	return glm::tvec2<int>(m_root.GetRect().w, m_root.GetRect().h);
 }
 
-void MainWindow::OnResized(glm::vec2 size)
+void MainWindow::OnResized(glm::tvec2<int> size)
 {
     m_root.SetRect(tb::TBRect(0, 0, size.x, size.y));
 }
 
-void MainWindow::Process()
+void MainWindow::Update()
 {
     tb::TBAnimationManager::Update();
     m_root.InvokeProcessStates();
@@ -366,7 +366,7 @@ bool MainWindow::HandleSDLEvent(SDL_Event& event)
         // event.user;
         // draw event
         if (m_needUpdate) {
-            Process();
+            Update();
             m_needUpdate = false;
             // Bail out if we get here with invalid dimensions.
             // This may happen when minimizing windows (GLFW 3.0.4, Windows 8.1).

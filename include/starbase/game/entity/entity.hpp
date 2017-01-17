@@ -10,8 +10,10 @@ typedef std::uint64_t entity_id;
 static constexpr int MAX_COMPONENTS = 16;
 
 struct Entity {
+	typedef std::bitset<MAX_COMPONENTS> component_bitset;
+
 	entity_id id;
-	std::bitset<MAX_COMPONENTS> bitset;
+	component_bitset bitset;
 	bool alive : 1;
 	bool needsToDie : 1;
 	bool isnew : 1;

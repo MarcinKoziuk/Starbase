@@ -15,10 +15,10 @@ std::shared_ptr<const Text> Text::Placeholder()
 	return Text::placeholder;
 }
 
-std::shared_ptr<const Text> Text::Create(const std::string& filename, IFilesystem& filesystem)
+std::shared_ptr<const Text> Text::Create(id_t id, IFilesystem& filesystem)
 {
 	auto text = std::make_shared<Text>();
-	bool ok = filesystem.ReadString(filename, &text->m_text);
+	bool ok = filesystem.ReadString(id, &text->m_text);
 	if (ok) {
 		return text;
 	}

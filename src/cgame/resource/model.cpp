@@ -1,9 +1,19 @@
 #include <numeric>
 
+#include <yaml-cpp/yaml.h>
+
+#include <nanosvg.h>
+
+#include <starbase/game/logging.hpp>
+#include <starbase/game/resource/detail/model_common.hpp>
+#include <starbase/game/resource/detail/casteljau.hpp>
+
 #include <starbase/cgame/resource/model.hpp>
 
 namespace Starbase {
 namespace Resource {
+
+static std::vector<Model::Path> ShapeToPaths(const NSVGshape* shape, Model::Style style, const glm::mat4& transform);
 
 std::shared_ptr<const Model> Model::placeholder = Model::MakePlaceholder();
 
@@ -17,25 +27,110 @@ std::shared_ptr<const Model> Model::Placeholder()
 	return Model::placeholder;
 }
 
-std::shared_ptr<const Model> Model::Create(const std::string& filename, IFilesystem& filesystem)
+std::shared_ptr<const Model> Model::Create(id_t id, IFilesystem& filesystem)
 {
 	auto model = std::make_shared<Model>();
 
-    // parse something!
+	std::string path;
+	if (!filesystem.GetPathForId(id, path)) {
+		return nullptr;
+	}
 
-	return nullptr;
+	std::unique_ptr<ModelFiles> modelFiles = GetModelFiles(filesystem, path);
+	glm::mat4 transform = GetTransformMatrix(*modelFiles);
+
+	NSVGimage& svg = *modelFiles->svg;
+
+	for (const NSVGshape* shape = svg.shapes; shape != nullptr; shape = shape->next) {
+		const char* group = shape->groupLabel;
+
+		if (std::strcmp(group, ORIGIN_GROUP_LABEL) == 0 ||
+			std::strcmp(group, BODY_GROUP_LABEL) == 0) {
+			continue;
+		}
+
+		model->AddShape(shape, transform);
+	}
+
+	return model;
+}
+
+void Model::AddShape(const NSVGshape* shape, const glm::mat4& transform)
+{
+	Model::Style style;
+	style.thickness = shape->strokeWidth;
+	style.color = glm::vec4(1.f, 0.f, 1.f, 1.f);
+	style.color.w = shape->opacity;
+
+	if (shape->stroke.type == NSVG_PAINT_COLOR) {
+		if (shape->stroke.color != 0xff000000) {
+			style.color = Hex3ToNormalizedColor4(shape->stroke.color, style.color.w);
+		}
+	}
+
+	const auto paths = ShapeToPaths(shape, style, transform);
+	m_paths.insert(m_paths.end(), paths.begin(), paths.end());
+}
+
+
+std::vector<Model::Path> ShapeToPaths(const NSVGshape* shape, Model::Style style, const glm::mat4& transform)
+{
+	std::vector<Model::Path> paths;
+
+	for (const NSVGpath* svgPath = shape->paths; svgPath != nullptr; svgPath = svgPath->next) {
+		Model::Path path;
+		path.style = style;
+		path.closed = svgPath->closed == 1;
+		
+		for (int i = 0; i < svgPath->npts - 1; i += 3) {
+			float* p = &svgPath->pts[i * 2];
+			std::vector<glm::vec2> cubicBezier;
+			cubicBezier.push_back(glm::vec2(p[0], p[1]));
+			cubicBezier.push_back(glm::vec2(p[2], p[3]));
+			cubicBezier.push_back(glm::vec2(p[4], p[5]));
+			cubicBezier.push_back(glm::vec2(p[6], p[7]));
+
+			std::vector<glm::vec2> approximatedBezier = Casteljau(cubicBezier);
+
+			int iz = 0;
+			for (const auto& p : approximatedBezier) {
+				const glm::vec2 pt = glm::vec2(transform * glm::vec4(p, 0.f, 0.f));
+
+				//if (iz % 4 == 0) {
+				path.points.push_back(pt);
+				//}
+				iz++;
+			}
+		}
+
+		if (path.points.size() < 2) {
+			LOG(error) << "Path in " << shape->groupLabel << ", has less than 2 points (" << path.points.size() << ")";
+			continue;
+		}
+
+		paths.push_back(path);
+	}
+
+	return paths;
 }
 
 std::shared_ptr<const Model> Model::MakePlaceholder()
 {
 	std::shared_ptr<Model> model = std::make_shared<Model>();
 
+	Style outer;
+	outer.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+	outer.thickness = 1.f;
+
+	Style inner;
+	inner.color = glm::vec4(1.f, 0.f, 1.f, .8f);
+	inner.thickness = .5f;
+
 	// BOX
 	Path p1;
-	p1.color = glm::vec3(1.f, 0.f, 0.f);
-	p1.thickness = 1.0;
+	p1.style = outer;
 	p1.closed = true;
-	p1.positions = {
+	p1.points = {
 		{-1, 1},
 		{-1, -1},
 		{1, -1},
@@ -44,20 +139,18 @@ std::shared_ptr<const Model> Model::MakePlaceholder()
 
 	// Diagonal \ of X
 	Path p2;
-	p2.color = glm::vec3(1.f, 0.f, 1.f);
-	p2.thickness = 0.5;
+	p2.style = inner;
 	p2.closed = false;
-	p2.positions = {
+	p2.points = {
 		{ -1, 1 },
 		{ 1, -1 }
 	};
 
 	// Diagonal / of X
 	Path p3;
-	p3.color = glm::vec3(1.f, 0.f, 1.f);
-	p3.thickness = 0.5;
+	p3.style = inner;
 	p3.closed = false;
-	p3.positions = {
+	p3.points = {
 		{ -1, -1 },
 		{ 1, 1 }
 	};

@@ -1,6 +1,5 @@
 model: interceptor-0.svg
-body:
-    scale: 0.01
+scale: 0.5
 physics:
     density: 1
     restitution: 0.5

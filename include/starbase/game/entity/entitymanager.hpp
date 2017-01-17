@@ -9,10 +9,12 @@
 #include <algorithm>
 #include <functional>
 
-#include "entity.hpp"
-#include "detail/tmp.hpp"
+#include <boost/signals2.hpp>
 
 #include <starbase/game/logging.hpp>
+
+#include "entity.hpp"
+#include "detail/tmp.hpp"
 
 namespace Starbase {
 
@@ -98,6 +100,7 @@ private:
 	{
 		std::vector<C>& components = GetComponents<C>();
 		const std::size_t indexOfComponent = pCom - &components.front();
+
 		assert(indexOfComponent < std::numeric_limits<int>::max());
 		return (int)indexOfComponent;
 	}
@@ -109,9 +112,21 @@ private:
 	}
 
 	template<typename C>
+	void SetBit(Entity::component_bitset& bitset, bool val)
+	{
+		bitset[EParams::componentIndex<C>()] = val;
+	}
+
+	template<typename C>
 	bool GetBit(const Entity& ent) const
 	{
 		return ent.bitset[EParams::componentIndex<C>()];
+	}
+
+	template<typename C>
+	bool GetBit(const Entity::component_bitset& bitset) const
+	{
+		return bitset[EParams::componentIndex<C>()];
 	}
 
 	template<typename C>
@@ -119,14 +134,18 @@ private:
 	{
 		auto& components = GetComponents<C>();
 		auto& componentsIndex = GetComponentsIndex<C>();
-		return components[componentsIndex[id]];
+
+		assert(componentsIndex.count(id));
+		return components.at(componentsIndex.at(id));
 	}
 
 	template<typename C>
 	C& GetComponentNewImpl(entity_id id)
 	{
 		auto& componentsNew = GetComponentsNew<C>();
-		return componentsNew[id];
+
+		assert(componentsNew.count(id));
+		return componentsNew.at(id);
 	}
 
 	template<typename C>
@@ -277,6 +296,11 @@ private:
 	};
 
 public:
+	boost::signals2::signal<void (Entity& entity)> entityAdded;
+	boost::signals2::signal<void (Entity& entity)> entityWillBeRemoved;
+	boost::signals2::signal<void (Entity& entity, Entity::component_bitset oldComponents)> componentAdded;
+	boost::signals2::signal<void (Entity& entity, Entity::component_bitset newComponents)> componentWillBeRemoved;
+
 	TEntityManager()
 		: m_entityIdCounter(0)
 	{
@@ -302,7 +326,19 @@ public:
 	}
 
 	template<typename C>
-	C& GetComponent(Entity& ent)
+	bool HasComponent(const Entity::component_bitset& bitset) const
+	{
+		return GetBit<C>(bitset);
+	}
+	
+	template<typename ...Cs>
+	bool HasComponents(const Entity::component_bitset& bitset) const
+	{
+		return TMP::And(HasComponent<Cs>(bitset)...);
+	}
+
+	template<typename C>
+	C& GetComponent(const Entity& ent)
 	{
 		if (SB_LIKELY(!ent.isnew)) {
 			return GetComponentExistingImpl<C>(ent.id);
@@ -351,6 +387,9 @@ public:
 	void RemoveEntity(Entity& ent)
 	{
 		if (SB_LIKELY(!ent.isnew)) {
+			// send signal (not necessary for new ones, because added signal had not been sent)
+			entityWillBeRemoved(ent);
+
 			RemoveEntityExistingImpl(ent);
 		}
 		else {
@@ -366,13 +405,21 @@ public:
 
 		if (SB_LIKELY(!ent.isnew)) {
 			pCom = &AddComponentExistingImpl<C>(ent.id);
+
+			const auto oldComponents = ent.bitset;
+			SetBit<C>(ent, true);
+
+			// send signal
+			componentAdded(ent, oldComponents);
 		}
 		else {
 			LOG(warning) << "Performance warning: components for new entities should be directly inserted on-construction: " << ent.id;
+			
 			pCom = &AddComponentNewImpl<C>(ent.id);
+			
+			SetBit<C>(ent, true);
 		}
 
-		SetBit<C>(ent, true);
 		return *pCom;
 	}
 
@@ -381,14 +428,22 @@ public:
 	{
 		if (SB_LIKELY(GetBit<C>(ent))) {
 			if (SB_LIKELY(!ent.isnew)) {
+				auto newComponents = ent.bitset;
+				SetBit<C>(newComponents, false);
+
+				// send signal
+				componentWillBeRemoved(ent, newComponents);
+
 				RemoveComponentExistingImpl<C>(ent.id);
+				ent.bitset = newComponents;
 			}
 			else {
 				LOG(warning) << "Performance warning: components for new entities should not be removed in the same loop! " << ent.id;
+				
 				RemoveComponentNewImpl<C>(ent.id);
-			}
 
-			SetBit<C>(ent, false);
+				SetBit<C>(ent, false);
+			}
 		}
 		else {
 			LOG(warning) << "Entity " << ent.id << " does not have component " << componentIndex << ", so cannot remove!";
@@ -415,6 +470,9 @@ public:
 			typedef MoveComponentNewIfBitIsSetFn<TEntityManager<EParams>> Functor;
 			Functor f(this, ent);
 			TMP::ForEach<EParams::component_types, Functor>(f);
+
+			// Send signal
+			entityAdded(*pEnt);
 		}
 
 		for (Entity& ent : m_entities) {
