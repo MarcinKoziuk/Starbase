@@ -5,9 +5,9 @@
 
 #include <starbase/game/fs/ifilesystem.hpp>
 #include <starbase/game/resource/iresource.hpp>
+#include <starbase/game/resource/resource_ptr.hpp>
 
 namespace Starbase {
-namespace Resource {
 
 class Text : public IResource {
 private:
@@ -29,9 +29,8 @@ public:
     static std::shared_ptr<const Text> Placeholder();
 
     static std::shared_ptr<const Text> Create(id_t id, IFilesystem& filesystem);
+
+	typedef ResourcePtr<Text> Ptr;
 };
 
-typedef std::shared_ptr<const Text> TextPtr;
-
-} // namespace Resource
 } // namespace Starbase

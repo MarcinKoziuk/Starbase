@@ -1,7 +1,6 @@
 #include <starbase/game/resource/text.hpp>
 
 namespace Starbase {
-namespace Resource {
 
 std::shared_ptr<const Text> Text::placeholder = std::make_shared<Text>();
 
@@ -27,5 +26,4 @@ std::shared_ptr<const Text> Text::Create(id_t id, IFilesystem& filesystem)
 	}
 }
 
-} // namespace Resource
 } // namespace Starbase

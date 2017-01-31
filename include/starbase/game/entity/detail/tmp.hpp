@@ -21,17 +21,17 @@ struct ContainerOfType : SameType<T, typename std::tuple_element<N, Tuple>::type
 
 template<int N, class C, class Tuple, bool Match = false> // this =false is only for clarity
 struct MatchingField {
-	static typename C& get(Tuple& tp)
+	static C& get(Tuple& tp)
 	{
 		// The "non-matching" version
 		return MatchingField<N + 1, C, Tuple,
-			ContainerOfType<N + 1, C::value_type, Tuple>::value>::get(tp);
+			ContainerOfType<N + 1, typename C::value_type, Tuple>::value>::get(tp);
 	}
 };
 
 template<int N, class C, class Tuple>
 struct MatchingField<N, C, Tuple, true> {
-	static typename C& get(Tuple& tp)
+	static C& get(Tuple& tp)
 	{
 		return std::get<N>(tp);
 	}
@@ -41,7 +41,7 @@ template<typename C, typename Tuple>
 C& GetTupleContainer(Tuple& tuple)
 {
 	return TMP::MatchingField<0, C, Tuple,
-		TMP::ContainerOfType<0, C::value_type, Tuple>::value>::get(tuple);
+		TMP::ContainerOfType<0, typename C::value_type, Tuple>::value>::get(tuple);
 }
 
 template<typename T, typename... Ts>
@@ -63,7 +63,11 @@ void ForEach(Functor&, std::integral_constant<size_t, std::tuple_size<typename s
 template<std::size_t I, typename Tuple, typename Functor, typename = typename std::enable_if<I != std::tuple_size<Tuple>::value>::type >
 void ForEach(Functor& f, std::integral_constant<size_t, I>)
 {
-	f. operator()<typename std::tuple_element<I, Tuple>::type>();
+#ifdef _MSC_VER
+	f.operator()<typename std::tuple_element<I, Tuple>::type>();
+#else
+	f.template operator()<typename std::tuple_element<I, Tuple>::type>();
+#endif
 
 	ForEach<I + 1, Tuple, Functor>(f, std::integral_constant<size_t, I + 1>());
 }

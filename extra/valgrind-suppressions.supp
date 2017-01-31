@@ -1,0 +1,259 @@
+{
+    ignore_vbox
+    Memcheck:Leak
+    ...
+    obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+    ...
+}
+{
+    ignore_vbox
+    Memcheck:Cond
+    ...
+    obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+    ...
+}
+{
+    ignore_vbox
+    Memcheck:Addr8
+    ...
+    obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+    ...
+}
+{
+    ignore_vbox
+    Memcheck:Addr4
+    ...
+    obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+    ...
+}
+{
+    ignore_vbox
+    Memcheck:Addr2
+    ...
+    obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+    ...
+}
+{
+    ignore_vbox
+    Memcheck:Addr1
+    ...
+    obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+    ...
+}
+{
+   blaat
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGLcrutil.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGLcrutil.so
+   fun:crNetConnectToServer
+   fun:crNetServerConnect
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+}
+{
+   aaaaa
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGLcrutil.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGLcrutil.so
+   fun:crNetConnectToServer
+   fun:crNetServerConnect
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGLcrutil.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGLcrutil.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGLcrutil.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGLpackspu.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGLpackspu.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGLfeedbackspu.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+   fun:vboxstub_glXMakeCurrent
+   obj:/usr/lib64/libSDL2-2.0.so.0.1.0
+   fun:SDL_GL_LoadLibrary
+}
+
+{
+    ignore_vbox
+    Memcheck:Value8
+    ...
+    obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+    ...
+}
+{
+    ignore_vbox
+    Memcheck:Value4
+    ...
+    obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+    ...
+}
+{
+    ignore_vbox
+    Memcheck:Value2
+    ...
+    obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+    ...
+}
+{
+    ignore_vbox
+    Memcheck:Value1
+    ...
+    obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGL.so
+    ...
+}
+{
+    ignore_boost_log
+    Memcheck:Leak
+    ...
+    obj:/usr/lib64/libboost_log.so.1.54.0
+    ...
+}
+{
+    ignore_sdl
+    Memcheck:Leak
+    ...
+    obj:/usr/lib64/libSDL2-2.0.so.0.1.0
+    ...
+}
+{
+    ignore_sdl
+    Memcheck:Cond
+    ...
+    obj:/usr/lib64/libSDL2-2.0.so.0.1.0
+    ...
+}
+{
+    ignore_sdl
+    Memcheck:Addr8
+    ...
+    obj:/usr/lib64/libSDL2-2.0.so.0.1.0
+    ...
+}
+{
+    ignore_sdl
+    Memcheck:Addr4
+    ...
+    obj:/usr/lib64/libSDL2-2.0.so.0.1.0
+    ...
+}
+{
+    ignore_sdl
+    Memcheck:Addr2
+    ...
+    obj:/usr/lib64/libSDL2-2.0.so.0.1.0
+    ...
+}
+{
+    ignore_sdl
+    Memcheck:Addr1
+    ...
+    obj:/usr/lib64/libSDL2-2.0.so.0.1.0
+    ...
+}
+{
+    ignore_sdl
+    Memcheck:Value8
+    ...
+    obj:/usr/lib64/libSDL2-2.0.so.0.1.0
+    ...
+}
+{
+    ignore_x11
+    Memcheck:Leak
+    ...
+    obj:/usr/lib64/libX11.so.6.3.0
+    ...
+}
+{
+    ignore_ld
+    Memcheck:Leak
+    ...
+    obj:/usr/lib64/ld-2.18.so
+    ...
+}
+{
+    ignore_dbus
+    Memcheck:Leak
+    ...
+    obj:/usr/lib64/libdbus-1.so.3.7.4
+    ...
+}
+{
+    blaa
+    Memcheck:Value8
+    ...
+    obj:/usr/lib64/libGLEW.so.1.9.0
+    ...
+}
+{
+    blaa
+    Memcheck:Value4
+    ...
+    obj:/usr/lib64/libGLEW.so.1.9.0
+    ...
+}
+{
+    blaa
+    Memcheck:Leak
+    ...
+    obj:/usr/lib64/libGLEW.so.1.9.0
+    ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+...
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGLpackspu.so
+    ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:glewInit
+...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   write(buf)
+   obj:/usr/lib64/libc-2.18.so
+...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+...
+   obj:/usr/lib64/libboost_log.so.1.54.0
+...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:strlen
+   fun:_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKh
+   fun:_ZN5boost3log11v2_mt_posixlsIcSt11char_traitsIcESaIcEPKhEERNS1_24basic_formatting_ostreamIT_T0_T1_EESD_RKT2_
+...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+...
+   obj:/opt/VBoxGuestAdditions-4.3.6/lib/VBoxOGLpackspu.so
+...
+}
+

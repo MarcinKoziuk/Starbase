@@ -113,7 +113,11 @@ if(MSVC)
 	#add_definitions(/utf-8 /wd4828 /EHsc) ???
 	add_definitions(/wd4996)
 else()
-    set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Wstrict-aliasing -pedantic -ffast-math")
+    set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -Wstrict-aliasing -pedantic -ffast-math")
+endif()
+
+if(STARBASE_STATIC_DEPENDENCIES)
+	add_definitions(-DGLEW_STATIC=1)
 endif()
 
 add_definitions(-DSTARBASE_VERSION="${STARBASE_VERSION}")
@@ -132,7 +136,7 @@ find_package(SDL2 REQUIRED)
 find_package(GLM REQUIRED)
 find_package(Chipmunk REQUIRED)
 find_package(PhysFS REQUIRED)
-find_package(YAMLCPP REQUIRED)
+find_package(YamlCpp REQUIRED)
 find_package(Freetype REQUIRED)
 find_package(TurboBadger REQUIRED)
 
@@ -162,7 +166,7 @@ target_link_libraries(${STARBASE_GAME_LIBRARY}
 target_link_libraries(${STARBASE_CGAME_LIBRARY}
     ${OPENGL_LIBRARY}
     ${GLEW_LIBRARY}
-    ${SDL2_LIBRARY}
+	${SDL2_LIBRARY}
 	${FREETYPE_LIBRARY}
     ${TURBOBADGER_LIBRARY}
     ${STARBASE_GAME_LIBRARY}
@@ -174,8 +178,20 @@ target_link_libraries(${STARBASE_SUPPORT_LIBRARY}
 
 target_link_libraries(${STARBASE_CLIENT_EXECUTABLE}
     ${STARBASE_CGAME_LIBRARY}
-    ${SDL2MAIN_LIBRARY}
 )
+
+if (WIN32)
+	target_link_libraries(${STARBASE_CLIENT_EXECUTABLE}
+		${SDL2MAIN_LIBRARY}
+		winmm
+		imm32
+		Version
+	)
+
+	if (STARBASE_STATIC_DEPENDENCIES)
+		set_target_properties(${STARBASE_CLIENT_EXECUTABLE} PROPERTIES LINK_FLAGS "/FORCE:multiple")
+	endif()
+endif()
 
 # --- Additional build commands ---
 if (STARBASE_COPY_DLLS AND WIN32)
@@ -192,3 +208,4 @@ if (STARBASE_COPY_DLLS AND WIN32)
 		)
 	endforeach()
 endif()
+

@@ -10,23 +10,23 @@
 #include <starbase/game/fs/ifilesystem.hpp>
 
 namespace Starbase {
-namespace Resource {
 
-static const char ORIGIN_GROUP_LABEL[] = "origin";
-static const char BODY_GROUP_LABEL[] = "body";
-static const char HARDPOINTS_GROUP_LABEL[] = "hardpoints";
+static const char GROUP_LABEL_PREFIX = '@';
+static const char ORIGIN_GROUP_LABEL[] = "@origin";
+static const char BODY_GROUP_LABEL[] = "@body";
+static const char HARDPOINTS_GROUP_LABEL[] = "@hardpoints";
 
 struct NSVGimage_deleter {
 	void operator()(NSVGimage* p) { nsvgDelete(p); }
 };
 
-typedef std::unique_ptr<NSVGimage, NSVGimage_deleter> NSVGImageUniqPtr;
+typedef std::unique_ptr<NSVGimage, NSVGimage_deleter> NSVGImageUPtr;
 
 struct ModelFiles {
 	YAML::Node cfg;
-	NSVGImageUniqPtr svg;
+	NSVGImageUPtr svg;
 
-	ModelFiles(YAML::Node cfg, NSVGImageUniqPtr svg)
+	ModelFiles(YAML::Node cfg, NSVGImageUPtr svg)
 		: cfg(std::move(cfg)), svg(std::move(svg))
 	{}
 };
@@ -39,5 +39,4 @@ glm::vec3 Hex3ToNormalizedColor3(std::uint32_t hex);
 
 glm::vec4 Hex3ToNormalizedColor4(std::uint32_t hex, float alpha);
 
-} // namespace Resource
 } // namespace Starbase

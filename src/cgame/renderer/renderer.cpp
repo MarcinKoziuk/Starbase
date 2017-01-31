@@ -5,10 +5,13 @@
 #include <starbase/game/logging.hpp>
 #include <starbase/game/entity/entity.hpp>
 #include <starbase/game/component/transform.hpp>
+#include <starbase/game/component/physics.hpp>
 #include <starbase/game/resource/resourceloader.hpp>
 #include <starbase/cgame/display.hpp>
 #include <starbase/cgame/component/renderable.hpp>
 #include <starbase/cgame/renderer/renderer.hpp>
+
+#include <chipmunk/chipmunk_structs.h>
 
 #ifndef NDEBUG
 #define GLCALL(CALL)													\
@@ -43,6 +46,8 @@ Renderer::Renderer(Display& display, IFilesystem& filesystem, ResourceLoader& rl
 	: m_filesystem(filesystem)
 	, m_display(display)
 	, m_resourceLoader(rl)
+	, m_debugDraw(false)
+	, m_zoom(5.f)
 {}
 
 GLuint Renderer::MakeVBO(GLenum target, const void* data, GLsizei size, GLenum usage)
@@ -123,14 +128,25 @@ bool Renderer::InitPathShader()
 	return true;
 }
 
-bool Renderer::InitModelGL(id_t modelId, ModelGL* modelGl)
+bool Renderer::InitModelGL(ResourcePtr<Model> model, ModelGL* modelGl)
 {
-	modelGl->modelRef = m_resourceLoader.Load<Resource::Model>(modelId);
-
-	const Resource::Model& model = *modelGl->modelRef;
-	for (const Resource::Model::Path& path : model.GetPaths()) {
+	for (const Model::Path& path : model->GetPaths()) {
 		const GLfloat* positions = reinterpret_cast<const GLfloat*>(&path.points.front());
 		const GLsizei numPositions = static_cast<GLsizei>(sizeof(GLfloat) * 2 * path.points.size());
+
+		GLuint vbo = MakeVBO(GL_ARRAY_BUFFER, positions, numPositions, GL_STATIC_DRAW);
+		modelGl->pathVBOs.push_back(vbo);
+	}
+
+	return true;
+}
+
+// for debug draw
+bool Renderer::InitBodyGL(ResourcePtr<Body> bodyPtr, const Physics& physics, ModelGL* modelGl)
+{
+	for (const auto& polyShape : bodyPtr->GetPolygonShapes()) {
+		const cpFloat* positions = reinterpret_cast<const cpFloat*>(&polyShape.front());
+		const GLsizei numPositions = static_cast<GLsizei>(sizeof(cpFloat) * 2 * polyShape.size());
 
 		GLuint vbo = MakeVBO(GL_ARRAY_BUFFER, positions, numPositions, GL_STATIC_DRAW);
 		modelGl->pathVBOs.push_back(vbo);
@@ -152,9 +168,10 @@ glm::mat4 Renderer::CalcMatrix(const Transform& trans)
 	glm::mat4 model, view, projection;
 
 	glm::vec2 windowSize = m_display.GetWindowSize();
-	float aspect = windowSize.x / (float)windowSize.y;
+	//float aspect = windowSize.x / (float)windowSize.y;
 
-	projection = glm::ortho(-640.f, 640.f, -400.f, 400.f, -1.0f, 1.0f);;
+	projection = glm::ortho(-windowSize.x/m_zoom, windowSize.x/m_zoom, -windowSize.y/m_zoom, windowSize.y/m_zoom, -1.0f, 1.0f);;
+
 
 	model = glm::translate(model, glm::vec3(trans.pos.x, trans.pos.y, 0));
 	model = glm::rotate(model, trans.rot, glm::vec3(0.f, 0.f, 1.f));
@@ -167,12 +184,13 @@ glm::mat4 Renderer::CalcMatrix(const Transform& trans)
 
 void Renderer::RenderableAdded(const Renderable& rend)
 {
-	const std::uint32_t modelId = rend.modelId;
-	if (!m_modelGlData.count(modelId)) {
-		auto it = m_modelGlData.emplace(modelId, ModelGL());
+	const auto& model = rend.model;
+
+	if (!m_modelGlData.count(model.Id())) {
+		auto it = m_modelGlData.emplace(model.Id(), ModelGL());
 		ModelGL& modelGl = it.first->second;
-		
-		bool ok = InitModelGL(modelId, &modelGl);
+
+		bool ok = InitModelGL(model, &modelGl);
 		if (SB_UNLIKELY(!ok)) {
 			m_modelGlData.erase(it.first);
 		}
@@ -181,7 +199,7 @@ void Renderer::RenderableAdded(const Renderable& rend)
 
 void Renderer::RenderableRemoved(const Renderable& rend)
 {
-	m_modelGlData.erase(rend.modelId);
+	m_modelGlData.erase(rend.model.Id());
 }
 
 void Renderer::BeginDraw()
@@ -190,15 +208,89 @@ void Renderer::BeginDraw()
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void Renderer::Draw(const Entity& ent, const Transform& trans, const Renderable& rend)
+void Renderer::DebugDraw(const Entity& ent, const Transform& trans, const Physics& physics)
 {
-	if (SB_UNLIKELY(!m_modelGlData.count(rend.modelId))) {
+	ModelGL modelGl;
+	InitBodyGL(physics.body, physics, &modelGl);
+
+	glm::mat4 mvp = CalcMatrix(trans);
+
+	const Body& body = *physics.body;
+	std::size_t numShapes = body.GetPolygonShapes().size();
+
+	for (std::size_t i = 0; i < numShapes; i++) {
+		GLuint vbo = modelGl.pathVBOs[i];
+		const std::vector<glm::tvec2<cpFloat>>& polyShape = body.GetPolygonShapes()[i];
+
+		GLCALL(glUniform3f(m_pathShader.uniforms.color, 0.0, 1.0, 0.0));
+		GLCALL(glUniformMatrix4fv(m_pathShader.uniforms.mvp, 1, GL_FALSE, glm::value_ptr(mvp)));
+
+		GLCALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+		GLCALL(glVertexAttribPointer(
+			m_pathShader.attributes.position,
+			2,
+			GL_DOUBLE,
+			GL_FALSE,
+			sizeof(GLdouble) * 2,
+			nullptr
+		));
+
+		GLCALL(glEnableVertexAttribArray(m_pathShader.attributes.position));
+
+		GLCALL(glDrawArrays(
+			GL_LINE_LOOP,
+			0,
+			(GLsizei)polyShape.size()
+		));
+
+		GLCALL(glDisableVertexAttribArray(m_pathShader.attributes.position));
+	}
+
+	GLCALL(glUniform3f(m_pathShader.uniforms.color, 0.0, 1.0, 0.0));
+
+	// center!
+	const float vals[] = {
+		-1, 1,
+		-1, -1,
+		1, -1,
+		1, 1 };
+
+	GLuint vbo = MakeVBO(GL_ARRAY_BUFFER, &vals, sizeof(vals)*sizeof(float), GL_STATIC_DRAW);
+
+	GLCALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+	GLCALL(glVertexAttribPointer(
+		m_pathShader.attributes.position,
+		2,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(GLfloat) * 2,
+		nullptr
+	));
+
+	GLCALL(glEnableVertexAttribArray(m_pathShader.attributes.position));
+
+	GLCALL(glDrawArrays(
+		GL_LINE_LOOP,
+		0,
+		4
+	));
+
+	GLCALL(glDisableVertexAttribArray(m_pathShader.attributes.position));
+
+	glDeleteBuffers(1, &vbo);
+}
+
+void Renderer::Draw(const Entity& ent, const Transform& trans, const Renderable& rend, const Physics* maybePhysics)
+{
+	const id_t modelId = rend.model.Id();
+
+	if (SB_UNLIKELY(!m_modelGlData.count(modelId))) {
 		LOG(error) << "Need to implicitly initialize renderable; this may cause a memory leak!";
 		RenderableAdded(rend);
 	}
 
-	const ModelGL& modelGl = m_modelGlData.at(rend.modelId);
-	const Resource::Model& model = *modelGl.modelRef;
+	const ModelGL& modelGl = m_modelGlData.at(modelId);
+	const Model& model = *rend.model.Get();
 
 	GLCALL(glUseProgram(m_pathShader.program));
 
@@ -207,8 +299,8 @@ void Renderer::Draw(const Entity& ent, const Transform& trans, const Renderable&
 
 	for (std::size_t i = 0; i < numPaths; i++) {
 		GLuint vbo = modelGl.pathVBOs[i];
-		const Resource::Model::Path& path = model.GetPaths()[i];
-		const Resource::Model::Style& style = path.style;
+		const Model::Path& path = model.GetPaths()[i];
+		const Model::Style& style = path.style;
 
 		glm::mat4 mvp = CalcMatrix(trans);
 
@@ -222,7 +314,7 @@ void Renderer::Draw(const Entity& ent, const Transform& trans, const Renderable&
 			GL_FLOAT,
 			GL_FALSE,
 			sizeof(GLfloat) * 2,
-			false
+			nullptr
 		));
 
 		GLCALL(glEnableVertexAttribArray(m_pathShader.attributes.position));
@@ -235,6 +327,10 @@ void Renderer::Draw(const Entity& ent, const Transform& trans, const Renderable&
 		));
 
 		GLCALL(glDisableVertexAttribArray(m_pathShader.attributes.position));
+	}
+
+	if (m_debugDraw && maybePhysics != nullptr) {
+		DebugDraw(ent, trans, *maybePhysics);
 	}
 }
 

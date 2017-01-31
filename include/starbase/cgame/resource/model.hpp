@@ -10,11 +10,11 @@
 #include <starbase/starbase.hpp>
 #include <starbase/game/fs/ifilesystem.hpp>
 #include <starbase/game/resource/iresource.hpp>
+#include <starbase/game/resource/resource_ptr.hpp>
 
 struct NSVGshape;
 
 namespace Starbase {
-namespace Resource {
 
 class Model : public IResource {
 public:
@@ -31,7 +31,7 @@ public:
 		Style style;
 		bool closed;
 
-		const std::size_t CalculateSize() const
+        std::size_t CalculateSize() const
 		{
 			return sizeof(*this) + PodContainerSize(points);
 		}
@@ -60,7 +60,8 @@ public:
 	static std::shared_ptr<const Model> MakePlaceholder();
 
     static std::shared_ptr<const Model> Create(id_t id, IFilesystem& filesystem);
+
+	typedef ResourcePtr<Model> Ptr;
 };
 
-} // namespace Resource
 } // namespace Starbase

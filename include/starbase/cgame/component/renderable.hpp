@@ -8,7 +8,14 @@
 namespace Starbase {
 
 struct Renderable {
-	id_t modelId;
+	ResourcePtr<Model> model;
+
+	Renderable()
+	{}
+
+	Renderable(const ResourcePtr<Model>& model)
+		: model(model)
+	{}
 };
 
 } // namespace Starbase

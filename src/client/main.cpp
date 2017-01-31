@@ -5,6 +5,7 @@
 
 #include <tb/tb_core.h>
 #include <tb/tb_renderer.h>
+#include <tb/tb_system.h>
 #include <tb/animation/tb_widget_animation.h>
 #include <tb/tb_language.h>
 #include <tb/tb_font_renderer.h>
@@ -15,10 +16,14 @@
 #include <starbase/game/fs/filesystem_physfs.hpp>
 #include <starbase/game/resource/resourceloader.hpp>
 #include <starbase/game/resource/text.hpp>
+#include <starbase/game/resource/body.hpp>
 #include <starbase/game/entity/entity.hpp>
 #include <starbase/game/entity/entitymanager.hpp>
-#include <starbase/game/component/body.hpp>
+#include <starbase/game/component/physics.hpp>
 #include <starbase/game/component/transform.hpp>
+#include <starbase/game/component/shipcontrols.hpp>
+#include <starbase/game/system/physics_system.hpp>
+#include <starbase/game/system/shipcontrols_system.hpp>
 #include <starbase/cgame/resource/model.hpp>
 #include <starbase/cgame/display.hpp>
 #include <starbase/cgame/renderer/renderer.hpp>
@@ -35,7 +40,7 @@ static void ShutdownUI();
 static void MainLoop(UI::MainWindow& mainWindow, Display& display, IFilesystem& fs);
 
 
-using CGameParams = EParams<Body, Transform, Renderable>;
+using CGameParams = EParams<Transform, Physics, ShipControls, Renderable>;
 using EntityManager = TEntityManager<CGameParams>;
 
 class Scene {
@@ -43,15 +48,19 @@ private:
 	EntityManager m_entityManager;
 	ResourceLoader m_resourceLoader;
 	Renderer m_renderer;
+	PhysicsSystem m_cpPhysics;
+	ShipControlsSystem m_shipControlsSystem;
 	Display& m_display;
 	IFilesystem& m_fs;
+
+	entity_id testShipId;
 
 public:
 	Scene(Display& display, IFilesystem& fs)
 		: m_display(display)
-		, m_fs(fs)
 		, m_resourceLoader(fs)
 		, m_renderer(display, fs, m_resourceLoader)
+        , m_fs(fs)
 	{
 		m_renderer.Init();
 
@@ -59,54 +68,128 @@ public:
 			if (m_entityManager.HasComponent<Renderable>(ent)) {
 				m_renderer.RenderableAdded(m_entityManager.GetComponent<Renderable>(ent));
 			}
+			if (m_entityManager.HasComponents<Transform, Physics>(ent)) {
+				m_cpPhysics.PhysicsAdded(ent, m_entityManager.GetComponent<Transform>(ent), m_entityManager.GetComponent<Physics>(ent));
+			}
 		});
 		m_entityManager.entityWillBeRemoved.connect([this](const Entity& ent) {
 			if (m_entityManager.HasComponent<Renderable>(ent)) {
 				m_renderer.RenderableRemoved(m_entityManager.GetComponent<Renderable>(ent));
+			}
+			if (m_entityManager.HasComponents<Transform, Physics>(ent)) {
+				m_cpPhysics.PhysicsRemoved(ent, m_entityManager.GetComponent<Transform>(ent), m_entityManager.GetComponent<Physics>(ent));
 			}
 		});
 		m_entityManager.componentAdded.connect([this](const Entity& ent, Entity::component_bitset oldComponents) {
 			if (m_entityManager.HasComponent<Renderable>(ent) && !m_entityManager.HasComponent<Renderable>(oldComponents)) {
 				m_renderer.RenderableAdded(m_entityManager.GetComponent<Renderable>(ent));
 			}
+			if (m_entityManager.HasComponents<Transform, Physics>(ent) && !m_entityManager.HasComponents<Transform, Physics>(ent)) {
+				m_cpPhysics.PhysicsAdded(ent, m_entityManager.GetComponent<Transform>(ent), m_entityManager.GetComponent<Physics>(ent));
+			}
 		});
 		m_entityManager.componentWillBeRemoved.connect([this](const Entity& ent, Entity::component_bitset newComponents) {
 			if (m_entityManager.HasComponent<Renderable>(ent) && !m_entityManager.HasComponent<Renderable>(newComponents)) {
 				m_renderer.RenderableRemoved(m_entityManager.GetComponent<Renderable>(ent));
 			}
+			if (m_entityManager.HasComponents<Transform, Physics>(ent) && !m_entityManager.HasComponents<Transform, Physics>(ent)) {
+				m_cpPhysics.PhysicsRemoved(ent, m_entityManager.GetComponent<Transform>(ent), m_entityManager.GetComponent<Physics>(ent));
+			}
 		});
 
-		std::tuple<Entity&, Transform&, Renderable&> test = m_entityManager.CreateEntity<Transform, Renderable>();
-		Entity& testEnt = std::get<0>(test);
-		Transform& testTrans = std::get<1>(test);
-		Renderable& testRend = std::get<2>(test);
+		AddTestShip(ID("models/planets/simple"), glm::vec2(0.f, -50.f), 0, 1.f);
+		AddTestShip(ID("models/ships/interceptor-0"), glm::vec2(80.f, 80.f), 0.f, 2.f);
+		testShipId = AddTestShip(ID("models/ships/interceptor-0"), glm::vec2(-80.f, 0.f), 0.4f, 1.f);
+		m_entityManager.Refresh();
+	}
 
-		testRend.modelId = ID("models/ships/interceptor-0");
-		testTrans.rot = 0.7f;
-		testTrans.scale = glm::vec2(1.f, 1.f);
-		testTrans.pos = glm::vec2(20.f, 1.f);
+	bool HandleSDLEvent(SDL_Event event)
+	{
+		Entity& entity = m_entityManager.GetEntity(testShipId);
+		ShipControls& scontrols = m_entityManager.GetComponent<ShipControls>(entity);
 
-		std::tuple<Entity&, Transform&, Renderable&> pest = m_entityManager.CreateEntity<Transform, Renderable>();
-		Entity& pestEnt = std::get<0>(pest);
-		Transform& pestTrans = std::get<1>(pest);
-		Renderable& pestRend = std::get<2>(pest);
+		switch (event.type) {
+		case (SDL_KEYDOWN):
+			if (event.key.keysym.scancode == SDL_SCANCODE_LEFT) {
+				scontrols.actionFlags.rotateLeft = true;
+			}
+			if (event.key.keysym.scancode == SDL_SCANCODE_RIGHT) {
+				scontrols.actionFlags.rotateRight = true;
+			}
+			if (event.key.keysym.scancode == SDL_SCANCODE_UP) {
+				scontrols.actionFlags.thrustForward = true;
+			}
+			return true;
+		case (SDL_KEYUP):
+			if (event.key.keysym.scancode == SDL_SCANCODE_LEFT) {
+				scontrols.actionFlags.rotateLeft = false;
+			}
+			if (event.key.keysym.scancode == SDL_SCANCODE_RIGHT) {
+				scontrols.actionFlags.rotateRight = false;
+			}
+			if (event.key.keysym.scancode == SDL_SCANCODE_UP) {
+				scontrols.actionFlags.thrustForward = false;
+			}
+			if (event.key.keysym.scancode == SDL_SCANCODE_D) {
+				LOG(info) << "Setting debug drawing to " << m_renderer.m_debugDraw;
+				m_renderer.m_debugDraw = !m_renderer.m_debugDraw;
+			}
+			return true;
+		case (SDL_MOUSEWHEEL):
+			m_renderer.m_zoom += event.wheel.y * 0.1f;
+			return true;
+		}
 
-		pestRend.modelId = ID("blah");
-		pestTrans.rot = 0.f;
-		pestTrans.scale = glm::vec2(50.f, 50.f);
-		pestTrans.pos = glm::vec2(0.f, 0.f);
+		return false;
+	}
+
+	entity_id AddTestShip(id_t id, glm::vec2 pos, float rot, float scale)
+	{
+		entity_id ret;
+
+		std::tuple<Entity&, Transform&, ShipControls&> ship = m_entityManager.CreateEntity<Transform, ShipControls>();
+
+		Entity& entity = std::get<0>(ship);
+		ret = entity.id;
+
+		Transform& transf = std::get<1>(ship);
+		transf.pos = pos;
+		transf.rot = rot;
+		transf.scale = glm::vec2(scale, scale);
+
+		ResourcePtr<Model> modelPtr = m_resourceLoader.Load<Model>(id);
+		ResourcePtr<Body> bodyPtr = m_resourceLoader.Load<Body>(id);
+
+		(void) m_entityManager.AddComponent<Renderable>(entity, modelPtr);
+		(void) m_entityManager.AddComponent<Physics>(entity, ID("default"), bodyPtr);
+
+		return ret;
 	}
 
 	void Update()
 	{
 		m_entityManager.Refresh();
+
+		m_cpPhysics.Simulate(1.f / 60.f);
+		m_entityManager.ForEachEntityWithComponents<Transform, Physics>([this](Entity& ent, Transform& trans, Physics& phys) {
+			m_cpPhysics.Update(ent, trans, phys);
+		});
+
+		m_entityManager.ForEachEntityWithComponents<Physics, ShipControls>([this](Entity& ent, Physics& phys, ShipControls& scontrols) {
+			m_shipControlsSystem.Update(ent, phys, scontrols);
+		});
 	}
 
 	void Render()
 	{
 		m_renderer.BeginDraw();
 		m_entityManager.ForEachEntityWithComponents<Transform, Renderable>([this](Entity& ent, Transform& trans, Renderable& rend) {
-			m_renderer.Draw(ent, trans, rend);
+			Physics* phys = nullptr;
+			if (m_entityManager.HasComponent<Physics>(ent)) {
+				phys = &m_entityManager.GetComponent<Physics>(ent);
+			}
+
+			m_renderer.Draw(ent, trans, rend, phys);
 		});
 		m_renderer.EndDraw();
 	}
@@ -143,6 +226,9 @@ static void MainLoop(UI::MainWindow& mainWindow, Display& display, IFilesystem& 
 		SDL_Event event;
 
 		while (SDL_PollEvent(&event) > 0) {
+			if (scene.HandleSDLEvent(event)) {
+				continue;
+			}
 			if (mainWindow.HandleSDLEvent(event)) {
 				continue;
 			}
@@ -198,6 +284,9 @@ static std::unique_ptr<tb::TBRenderer> InitUI()
 		return nullptr;
 	}
 
+	// Do not optimize our custom implementation away while linking (fixes linux build issue)
+    SB_UNUSED(const static auto& _tbFsFix = &tb::TBFile::Open);
+
 	tb::TBWidgetsAnimationManager::Init();
 
 	// Load language file
@@ -229,7 +318,7 @@ static std::unique_ptr<tb::TBRenderer> InitUI()
 	// Render some glyphs in one go now since we know we are going to use them. It would work fine
 	// without this since glyphs are rendered when needed, but with some extra updating of the glyph bitmap.
 	if (font)
-		font->RenderGlyphs(" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~•·åäöÅÄÖ");
+		font->RenderGlyphs(u8" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~â€¢Â·Ã¥Ã¤Ã¶Ã…Ã„Ã–");
 
 	return std::move(tbRenderer);
 }

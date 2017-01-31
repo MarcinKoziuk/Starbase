@@ -1,4 +1,4 @@
-find_path(FREETYPE_INCLUDE_DIR freetype2/freetype.h freetype2/freetype/freetype.h)
+find_path(FREETYPE_INCLUDE_DIR freetype2/freetype.h freetype2/freetype/freetype.h PATH_SUFFIXES freetype2)
 find_library(FREETYPE_LIBRARY NAMES freetype freetyped)
 
 INCLUDE(FindPackageHandleStandardArgs)

@@ -27,6 +27,12 @@ public:
 	{
 		return PHYSFS_read(file, buf, (PHYSFS_uint32)elemSize, (PHYSFS_uint32)count);
 	}
+
+	virtual size_t Write(void *buf, size_t elemSize, size_t count)
+	{
+		LOG(error) << "Write not implemented in PhysFS tb::TBFile implementation";
+		return 0L;
+	}
 private:
 	PHYSFS_File* file;
 };
@@ -39,6 +45,7 @@ namespace tb {
 TBFile *TBFile::Open(const char *filename, TBFileMode mode)
 {
 	PHYSFS_File *f = nullptr;
+
 	switch (mode)
 	{
 	case MODE_READ:

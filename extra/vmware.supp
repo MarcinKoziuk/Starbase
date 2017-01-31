@@ -1,0 +1,261 @@
+{
+   sup1
+   Memcheck:Leak
+   fun:*
+   ...
+   obj:/usr/lib64/dri/vmwgfx_dri.so
+   ...
+}
+{
+   sup2
+   Memcheck:Leak
+   ...
+   obj:/usr/lib64/libGL.so.1.2.0
+   ...
+}
+{
+   vector
+   Memcheck:Param
+   writev(vector[...])
+   fun:__writev_nocancel
+   obj:/usr/lib64/libxcb.so.1.1.0
+   obj:/usr/lib64/libxcb.so.1.1.0
+   fun:xcb_writev
+   fun:_XSend
+   fun:_XReply
+   fun:XInternAtom
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.0
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.0
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.0
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.0
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.0
+}
+{
+   dl1
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   obj:/usr/lib64/libstdc++.so.6.0.21
+   fun:call_init.part.0
+   fun:_dl_init
+   obj:/usr/lib64/ld-2.22.so
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   fun:_dl_new_object
+   fun:_dl_map_object_from_fd
+   fun:_dl_map_object
+   fun:openaux
+   fun:_dl_catch_error
+   fun:_dl_map_object_deps
+   fun:dl_open_worker
+   fun:_dl_catch_error
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_error
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   fun:_ZN4llvm13StringMapImpl11RehashTableEj
+   fun:_ZN4llvm2cl6Option11addArgumentEv
+   obj:/usr/lib64/llvm/libLLVM-3.7.so
+   fun:call_init.part.0
+   fun:_dl_init
+   fun:dl_open_worker
+   fun:_dl_catch_error
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_error
+   fun:_dlerror_run
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   fun:_ZN4llvm13StringMapImpl11RehashTableEj
+   fun:_ZN4llvm2cl6Option11addArgumentEv
+   obj:/usr/lib64/llvm/libLLVM-3.7.so
+   fun:call_init.part.0
+   fun:_dl_init
+   fun:dl_open_worker
+   fun:_dl_catch_error
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_error
+   fun:_dlerror_run
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   fun:_ZN4llvm13StringMapImpl11RehashTableEj
+   fun:_ZN4llvm2cl6Option11addArgumentEv
+   obj:/usr/lib64/llvm/libLLVM-3.7.so
+   fun:call_init.part.0
+   fun:_dl_init
+   fun:dl_open_worker
+   fun:_dl_catch_error
+   fun:_dl_open
+   fun:dlopen_doit
+   fun:_dl_catch_error
+   fun:_dlerror_run
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:*alloc
+   ...
+   fun:XOpenIM
+   ...
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.0
+   ...
+}
+{
+   haha
+   Memcheck:Leak
+   ...
+   obj:/usr/lib64/libX11.so.6.3.0
+   ...
+   fun:XOpenIM
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   ...
+   fun:dlopen_doit
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:*alloc
+   ...
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.0
+   ...
+   fun:_ZN7Gravity7Display4InitEv
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   ...
+   fun:dlclose
+   ...
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.0
+   ...
+   fun:_ZN7Gravity7DisplayD1Ev
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:*alloc
+   fun:_ZN4llvm3sys11RWMutexImplC1Ev
+   ...
+   obj:/usr/lib64/llvm/libLLVM-3.7.so
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   ...
+   fun:XrmGetStringDatabase
+   ...
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.0
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:rawmemchr
+   fun:_IO_str_init_static_internal
+   fun:vsscanf
+   fun:sscanf
+   obj:/usr/lib64/libdrm.so.2.4.0
+   obj:/usr/lib64/libdrm.so.2.4.0
+   fun:drmGetDevice
+   obj:/usr/lib64/libGL.so.1.2.0
+   obj:/usr/lib64/libGL.so.1.2.0
+   obj:/usr/lib64/libGL.so.1.2.0
+   obj:/usr/lib64/libGL.so.1.2.0
+   obj:/usr/lib64/libGL.so.1.2.0
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   writev(vector[...])
+   obj:/usr/lib64/libc-2.24.so
+   obj:/usr/lib64/libxcb.so.1.1.0
+   obj:/usr/lib64/libxcb.so.1.1.0
+   fun:xcb_writev
+   fun:_XSend
+   fun:_XReply
+   fun:XInternAtom
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.1
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.1
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.1
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.1
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.1
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:_XlcDefaultMapModifiers
+   fun:XSetLocaleModifiers
+   ...
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.1
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:realloc
+   obj:/usr/lib64/libX11.so.6.3.0
+   ...
+   fun:_XlcCreateLC
+   fun:_XlcDefaultLoader
+   fun:_XOpenLC
+   fun:_XlcCurrentLC
+   fun:XSetLocaleModifiers
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.1
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:realloc
+   obj:/usr/lib64/libX11.so.6.3.0
+   obj:/usr/lib64/libX11.so.6.3.0
+   obj:/usr/lib64/libX11.so.6.3.0
+   fun:_XlcCreateLC
+   fun:_XlcUtf8Loader
+   fun:_XOpenLC
+   fun:_XlcCurrentLC
+   fun:XSetLocaleModifiers
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.1
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.1
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.1
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:calloc
+   fun:XkbGetMap
+   obj:/usr/lib64/libSDL2-2.0.so.0.4.1
+   ...
+}
+

@@ -39,7 +39,7 @@ static std::string makeDateString()
  #ifdef _WIN32
     localtime_s(&timeinfo, &rawtime);
  #else
-    std::localtime_r(&rawtime, &timeinfo);
+    localtime_r(&rawtime, &timeinfo);
  #endif   
 
     std::strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", &timeinfo);

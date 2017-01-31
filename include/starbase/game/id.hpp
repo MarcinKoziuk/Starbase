@@ -56,6 +56,6 @@ static constexpr id_t ID(const char* str)
 	return IDC(str);
 }
 
-#endif; // NDEBUG
+#endif // NDEBUG
 
 } // namespace Starbase

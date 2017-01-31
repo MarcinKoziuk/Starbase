@@ -67,25 +67,25 @@ private:
 	template<typename C>
 	std::vector<C>& GetComponents()
 	{
-		return TMP::GetTupleContainer<std::vector<C>, EParams::component_vectors>(m_components);
+		return TMP::GetTupleContainer<std::vector<C>, typename EParams::component_vectors>(m_components);
 	}
 
 	template<typename C>
 	std::map<entity_id, C>& GetComponentsNew()
 	{
-		return TMP::GetTupleContainer<std::map<entity_id, C>, EParams::component_maps>(m_componentsNew);
+		return TMP::GetTupleContainer<std::map<entity_id, C>, typename EParams::component_maps>(m_componentsNew);
 	}
 
 	template<typename C>
 	std::vector<C*>& GetComponentsFree()
 	{
-		return TMP::GetTupleContainer<std::vector<C*>, EParams::component_freelists>(m_componentsFree);
+		return TMP::GetTupleContainer<std::vector<C*>, typename EParams::component_freelists>(m_componentsFree);
 	}
 
 	template<typename C>
 	std::unordered_map<entity_id, int>& GetComponentsIndex()
 	{
-		return m_componentsIndex[EParams::componentIndex<C>()];
+		return m_componentsIndex[EParams::template componentIndex<C>()];
 	}
 
 	int IndexOfEntity(Entity* pEnt)
@@ -108,25 +108,25 @@ private:
 	template<typename C>
 	void SetBit(Entity& ent, bool val)
 	{
-		ent.bitset[EParams::componentIndex<C>()] = val;
+		ent.bitset[EParams::template componentIndex<C>()] = val;
 	}
 
 	template<typename C>
 	void SetBit(Entity::component_bitset& bitset, bool val)
 	{
-		bitset[EParams::componentIndex<C>()] = val;
+		bitset[EParams::template componentIndex<C>()] = val;
 	}
 
 	template<typename C>
 	bool GetBit(const Entity& ent) const
 	{
-		return ent.bitset[EParams::componentIndex<C>()];
+		return ent.bitset[EParams::template componentIndex<C>()];
 	}
 
 	template<typename C>
 	bool GetBit(const Entity::component_bitset& bitset) const
 	{
-		return bitset[EParams::componentIndex<C>()];
+		return bitset[EParams::template componentIndex<C>()];
 	}
 
 	template<typename C>
@@ -148,24 +148,24 @@ private:
 		return componentsNew.at(id);
 	}
 
-	template<typename C>
-	C& AddComponentExistingImpl(entity_id id)
+	template<typename C, typename... Args>
+	C& AddComponentExistingImpl(entity_id id, Args&&... args)
 	{
 		auto& components = GetComponents<C>();
 		auto& componentsIndex = GetComponentsIndex<C>();
 
-		components.emplace_back(C{});
+		components.emplace_back(C(std::forward<Args>(args)...));
 		C* pcom = &components.back();
 
 		componentsIndex[id] = IndexOfComponent<C>(pcom);
 		return *pcom;
 	}
 
-	template<typename C>
-	C& AddComponentNewImpl(entity_id id)
+	template<typename C, typename... Args>
+	C& AddComponentNewImpl(entity_id id, Args&&... args)
 	{
 		auto& componentsNew = GetComponentsNew<C>();
-		C& com = componentsNew.emplace(id, C{}).first->second;
+		C& com = componentsNew.emplace(id, C(std::forward<Args>(args)...)).first->second;
 		return com;
 	}
 
@@ -191,7 +191,7 @@ private:
 		auto& componentsIndex = GetComponentsIndex<C>();
 
 		C& com = components[componentsIndex[id]];
-		com = C{}; // clearing not necessary, but handy for debugging
+		com = C{}; // clear component to force destructor to be called
 
 		componentsFree.push_back(&com);
 		componentsIndex.erase(id);
@@ -213,7 +213,7 @@ private:
 
 		template<typename C>
 		void operator()() {
-			em->RemoveComponentNewIfBitIsSetImpl<C>(ent);
+			em->template RemoveComponentNewIfBitIsSetImpl<C>(ent);
 		}
 	};
 
@@ -221,7 +221,7 @@ private:
 	{
 		typedef RemoveComponentNewIfBitIsSetFn<TEntityManager<EParams>> Functor;
 		Functor f(this, ent);
-		TMP::ForEach<EParams::component_types, Functor>(f);
+		TMP::ForEach<typename EParams::component_types, Functor>(f);
 	}
 
 	template<typename C>
@@ -240,7 +240,7 @@ private:
 
 		template<typename C>
 		void operator()() {
-			em->RemoveComponentExistingIfBitIsSetImpl<C>(ent);
+			em->template RemoveComponentExistingIfBitIsSetImpl<C>(ent);
 		}
 	};
 
@@ -248,7 +248,7 @@ private:
 	{
 		typedef RemoveComponentExistingIfBitIsSetFn<TEntityManager<EParams>> Functor;
 		Functor f(this, ent);
-		TMP::ForEach<EParams::component_types, Functor>(f);
+		TMP::ForEach<typename EParams::component_types, Functor>(f);
 	}
 
 	void RemoveEntityExistingImpl(Entity& ent)
@@ -279,15 +279,14 @@ private:
 
 		template<typename C>
 		void operator()() {
-			auto& components = em->GetComponents<C>();
-			auto& componentsNew = em->GetComponentsNew<C>();
-			auto& componentsIndex = em->GetComponentsIndex<C>();
+			auto& components = em->template GetComponents<C>();
+			auto& componentsNew = em->template GetComponentsNew<C>();
+			auto& componentsIndex = em->template GetComponentsIndex<C>();
 
-			if (em->GetBit<C>(ent)) {
-				C com = componentsNew[ent.id];
-				componentsNew.erase(ent.id);
-
+			if (em->template GetBit<C>(ent)) {
+				C& com = componentsNew.at(ent.id);
 				components.emplace_back(std::move(com));
+				componentsNew.erase(ent.id);
 
 				C* pCom = &components.back();
 				componentsIndex[ent.id] = em->IndexOfComponent(pCom);
@@ -350,26 +349,38 @@ public:
 	}
 
 	template<typename F>
-	void ForEachEntity(F& lambda)
+	void ForEachEntity(F fun)
 	{
 		for (Entity& ent : m_entities) {
 			if (SB_LIKELY(ent.alive)) {
-				lambda(ent);
+				fun(ent);
 			}
 		}
 	}
 
 	template<typename ...Cs, typename F>
-	void ForEachEntityWithComponents(F& lambda)
+	void ForEachEntityWithComponents(F fun)
 	{
 		for (Entity& ent : m_entities) {
 			if (SB_LIKELY(ent.alive)) {
 				if (HasComponents<Cs...>(ent)) {
-					lambda(ent, std::forward<Cs>(GetComponent<Cs>(ent))...);
+					fun(ent, GetComponent<Cs>(ent)...);
 				}
 			}
 		}
 	}
+	/*
+	template<typename ...Cs, typename F>
+	void ForEachEntityWithComponents(F fun)
+	{
+		for (Entity& ent : m_entities) {
+			if (SB_LIKELY(ent.alive)) {
+				if (HasComponents<Cs...>(ent)) {
+					fun(ent, std::forward<Cs>(GetComponent<Cs>(ent))...);
+				}
+			}
+		}
+	}*/
 
 	Entity& CreateEntity()
 	{
@@ -398,13 +409,13 @@ public:
 		}
 	}
 
-	template<typename C>
-	C& AddComponent(Entity& ent)
+	template<typename C, typename... Args>
+	C& AddComponent(Entity& ent, Args&&... args)
 	{
 		C* pCom = nullptr;
 
 		if (SB_LIKELY(!ent.isnew)) {
-			pCom = &AddComponentExistingImpl<C>(ent.id);
+			pCom = &AddComponentExistingImpl<C, Args...>(ent.id, std::forward<Args>(args)...);
 
 			const auto oldComponents = ent.bitset;
 			SetBit<C>(ent, true);
@@ -413,9 +424,9 @@ public:
 			componentAdded(ent, oldComponents);
 		}
 		else {
-			LOG(warning) << "Performance warning: components for new entities should be directly inserted on-construction: " << ent.id;
+			//LOG(warning) << "Performance warning: components for new entities should be directly inserted on-construction: " << ent.id;
 			
-			pCom = &AddComponentNewImpl<C>(ent.id);
+			pCom = &AddComponentNewImpl<C, Args...>(ent.id, std::forward<Args>(args)...);
 			
 			SetBit<C>(ent, true);
 		}
@@ -446,7 +457,7 @@ public:
 			}
 		}
 		else {
-			LOG(warning) << "Entity " << ent.id << " does not have component " << componentIndex << ", so cannot remove!";
+			LOG(warning) << "Entity " << ent.id << " does not have component " << EParams::template componentIndex<C>() << ", so cannot remove!";
 		}
 	}
 
@@ -454,7 +465,7 @@ public:
 	{
 		while (!m_entitiesNew.empty()) {
 			// Make copy of the new entity and remove it
-			auto& iter = m_entitiesNew.begin();
+			auto iter = m_entitiesNew.begin();
 			Entity ent = iter->second;
 			m_entitiesNew.erase(iter);
 
@@ -469,7 +480,7 @@ public:
 			// Do the same for its belonging components
 			typedef MoveComponentNewIfBitIsSetFn<TEntityManager<EParams>> Functor;
 			Functor f(this, ent);
-			TMP::ForEach<EParams::component_types, Functor>(f);
+			TMP::ForEach<typename EParams::component_types, Functor>(f);
 
 			// Send signal
 			entityAdded(*pEnt);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cassert>
 #include <numeric>
 
 namespace Starbase {
@@ -17,12 +18,24 @@ public:
 template<typename T>
 std::size_t PodContainerSize(const T& container)
 {
-	return sizeof(T::value_type) * container.size();
+	return sizeof(typename T::value_type) * container.size();
 }
 
-// T must have function CalculateSize() (it does not need to inherit IResource)
 template<typename T>
-std::size_t ResourceContainerSize(const T& container)
+std::size_t PodContainerContainerSize(const T& container)
+{
+	return std::accumulate(
+		container.begin(),
+		container.end(),
+		std::size_t(0L),
+		[](std::size_t v, const typename T::value_type& e) {
+			return v + PodContainerSize(e);
+		}
+	);
+}
+
+template<typename T>
+std::size_t SizeAwareContainerSize(const T& container)
 {
 	return std::accumulate(
 		container.begin(),

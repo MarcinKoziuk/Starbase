@@ -2,12 +2,20 @@
 
 namespace Starbase {
 
-    struct Renderable;
-    
-    class Display;
-    class Renderer;
+	class Display;
+	class Renderer;
 
-    namespace Resource {
-        class Model;
-    }
+	// Systems
+	class PhysicsSystem;
+	class ShipControlsSystem;
+
+	// Components
+    struct Renderable;
+	struct Physics;
+	struct ShipControls;
+	struct Transform;
+
+	// Resources
+    class Model;
+	class Body;
 }

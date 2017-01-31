@@ -49,7 +49,7 @@ public:
     void OnResized(glm::tvec2<int> size);
     void Update();
     void Render();
-    bool MainWindow::HandleSDLEvent(SDL_Event& event);
+    bool HandleSDLEvent(SDL_Event& event);
 
 };
 

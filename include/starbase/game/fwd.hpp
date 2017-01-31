@@ -3,7 +3,7 @@
 namespace Starbase {
 
     struct Entity;
-    struct Body;
+	struct Physics;
     struct Transform;
     
     class Display;

@@ -10,3 +10,11 @@
 	#define SB_LIKELY(x) (x)
 	#define SB_UNLIKELY(x) (x)
 #endif
+
+#if defined(__GNUC__) || defined(__clang__)
+    #define SB_UNUSED(x) __attribute__((unused)) x
+#elif defined _MSC_VER
+    #define SB_UNUSED(x) __pragma(warning(suppress:4100 4101)) x
+#else
+    #define SB_UNUSED x
+#endif

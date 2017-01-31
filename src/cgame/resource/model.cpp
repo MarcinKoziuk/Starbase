@@ -1,4 +1,5 @@
 #include <numeric>
+#include <cstring>
 
 #include <yaml-cpp/yaml.h>
 
@@ -11,7 +12,6 @@
 #include <starbase/cgame/resource/model.hpp>
 
 namespace Starbase {
-namespace Resource {
 
 static std::vector<Model::Path> ShapeToPaths(const NSVGshape* shape, Model::Style style, const glm::mat4& transform);
 
@@ -19,7 +19,7 @@ std::shared_ptr<const Model> Model::placeholder = Model::MakePlaceholder();
 
 std::size_t Model::CalculateSize() const
 {
-	return sizeof(*this) + ResourceContainerSize(m_paths);
+	return sizeof(*this) + SizeAwareContainerSize(m_paths);
 }
 
 std::shared_ptr<const Model> Model::Placeholder()
@@ -44,8 +44,7 @@ std::shared_ptr<const Model> Model::Create(id_t id, IFilesystem& filesystem)
 	for (const NSVGshape* shape = svg.shapes; shape != nullptr; shape = shape->next) {
 		const char* group = shape->groupLabel;
 
-		if (std::strcmp(group, ORIGIN_GROUP_LABEL) == 0 ||
-			std::strcmp(group, BODY_GROUP_LABEL) == 0) {
+		if (std::strlen(group) > 0 && group[0] == GROUP_LABEL_PREFIX) {
 			continue;
 		}
 
@@ -94,9 +93,10 @@ std::vector<Model::Path> ShapeToPaths(const NSVGshape* shape, Model::Style style
 
 			int iz = 0;
 			for (const auto& p : approximatedBezier) {
-				const glm::vec2 pt = glm::vec2(transform * glm::vec4(p, 0.f, 0.f));
+				auto v4 = transform * glm::vec4(p, 1.f, 1.f);
+				const glm::vec2 pt = glm::vec2(v4);
 
-				//if (iz % 4 == 0) {
+				//if (iz % 3 == 0) {
 				path.points.push_back(pt);
 				//}
 				iz++;
@@ -162,5 +162,4 @@ std::shared_ptr<const Model> Model::MakePlaceholder()
 	return model;
 }
 
-} // namespace Resource
 } // namespace Starbase

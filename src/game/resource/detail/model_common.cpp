@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <cstring>
 
 #include <glm/glm.hpp>
 #include <glm/vec2.hpp>
@@ -8,7 +9,6 @@
 #include <starbase/game/resource/detail/model_common.hpp>
 
 namespace Starbase {
-namespace Resource {
 
 static std::string SplitFilename(const std::string& path)
 {
@@ -54,10 +54,10 @@ std::unique_ptr<ModelFiles> GetModelFiles(IFilesystem& fs, const std::string& pa
 				svgPath = GetModelDefaultSvgPath(fs, path);
 			}
 
-			std::vector<std::uint8_t> svgBytes;
-			bool ok = fs.ReadBytes(svgPath, &svgBytes);
+			std::string svgInput;
+			bool ok = fs.ReadString(svgPath, &svgInput);
 			if (ok) {
-				auto svgPtr = NSVGImageUniqPtr(nsvgParse(reinterpret_cast<char *>(&svgBytes.front()), "px", 96));
+				auto svgPtr = NSVGImageUPtr(nsvgParse(reinterpret_cast<char *>(&svgInput.front()), "px", 96));
 				if (svgPtr != nullptr) {
 					return std::unique_ptr<ModelFiles>(new ModelFiles(std::move(cfg), std::move(svgPtr)));
 				}
@@ -115,7 +115,7 @@ glm::mat4 GetTransformMatrix(const ModelFiles& mf)
 	}
 
 	glm::mat4 transform;
-	transform = glm::translate(transform, glm::vec3(origin.x, origin.y, 0));
+	transform = glm::translate(transform, glm::vec3(-origin.x * scale, -origin.y * scale, 0));
 	transform = glm::rotate(transform, rotation, glm::vec3(0.f, 0.f, 1.f));
 	transform = glm::scale(transform, glm::vec3(scale, scale, 1.f));
 	return transform;
@@ -142,5 +142,4 @@ glm::vec4 Hex3ToNormalizedColor4(std::uint32_t hex, float alpha)
 	return c;
 }
 
-} // namespace Resource
 } // namespace Starbase

@@ -30,7 +30,6 @@ struct PathShader {
 };
 
 struct ModelGL {
-	std::shared_ptr<const Resource::Model> modelRef;
 	std::vector<GLuint> pathVBOs;
 };
 
@@ -49,10 +48,16 @@ private:
 	GLuint MakeProgram(GLuint vertexShader, GLuint fragmentShader);
 
 	bool InitPathShader();
-	bool InitModelGL(id_t, ModelGL* modelGl);
+	bool InitModelGL(ResourcePtr<Model> model, ModelGL* modelGl);
+	bool InitBodyGL(ResourcePtr<Body> model, const Physics& physics, ModelGL* modelGl);
 	glm::mat4 CalcMatrix(const Transform& trans);
 
+	void DebugDraw(const Entity& ent, const Transform& trans, const Physics& physics);
+
 public:
+	bool m_debugDraw;
+	float m_zoom;
+
 	Renderer(Display& display, IFilesystem& filesystem, ResourceLoader& rl);
 
 	~Renderer() {}
@@ -67,7 +72,7 @@ public:
 
 	void BeginDraw();
 
-	void Draw(const Entity& ent, const Transform& trans, const Renderable& rend);
+	void Draw(const Entity& ent, const Transform& trans, const Renderable& rend, const Physics* maybePhysics);
 
 	void EndDraw();
 };

@@ -46,6 +46,7 @@ bool FilesystemPhysFS::Init()
 
 	int mounts = 0;
 	mounts += (PHYSFS_mount("D:\\Dropbox\\Projects\\starbase\\data", "/", true) != 0);
+	mounts += (PHYSFS_mount("/home/marcin/Dropbox/Projects/starbase/data", "/", true) != 0);
 	mounts += (PHYSFS_mount("../starbase/data", "/", true) != 0);
 	mounts += (PHYSFS_mount("./data", "/", true) != 0);
 	//mounts += (PHYSFS_mount("./Debug/data", "/", true) != null); //?

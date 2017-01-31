@@ -83,10 +83,10 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="7.919596"
-     inkscape:cx="25.729838"
+     inkscape:cx="7.2314196"
      inkscape:cy="95.156963"
      inkscape:document-units="px"
-     inkscape:current-layer="layer2"
+     inkscape:current-layer="layer1"
      showgrid="true"
      inkscape:window-width="1920"
      inkscape:window-height="1137"
@@ -271,7 +271,7 @@
   <g
      inkscape:groupmode="layer"
      id="layer2"
-     inkscape:label="hardpoints">
+     inkscape:label="@hardpoints">
     <circle
        style="fill:#00ffff;stroke:#00ffff"
        id="path3430"
@@ -290,7 +290,7 @@
   <g
      inkscape:groupmode="layer"
      id="layer4"
-     inkscape:label="body"
+     inkscape:label="@body"
      style="display:none">
     <path
        style="fill:none;stroke:#ff00ff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -326,7 +326,7 @@
   <g
      inkscape:groupmode="layer"
      id="layer5"
-     inkscape:label="origin"
+     inkscape:label="@origin"
      style="display:inline">
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
