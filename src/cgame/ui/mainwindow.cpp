@@ -13,6 +13,7 @@
 #include <tb/animation/tb_widget_animation.h>
 
 #include <starbase/game/logging.hpp>
+#include <starbase/cgame/display.hpp>
 #include <starbase/cgame/ui/mainwindow.hpp>
 #include <starbase/cgame/ui/renderer/tb_renderer_gl.hpp>
 #include <starbase/cgame/ui/startmenu.hpp>
@@ -387,15 +388,28 @@ bool MainWindow::HandleSDLEvent(SDL_Event& event)
 RootWidget::RootWidget(const MainWindow& mainWindow, const tb::TBRect& size)
 	: m_mainWindow(mainWindow)
 	, m_startMenu(nullptr)
+	, m_info(nullptr)
 {
 	tb::TBAnimationBlocker blocker;
 
 	SetRect(size);
-	SetSkinBg(TBIDC("background_transparent"));
+	//SetSkinBg(TBIDC("background_transparent"));
 
-	m_startMenu = new StartMenu(*this);
+	
+
 
 	//m_startMenu->SetSkinBg(TBIDC("background"));
+	
+	m_info = new tb::TBWidget();
+	m_info->SetRect(size);
+	tb::g_widgets_reader->LoadFile(m_info, "ui/layout/info.tb.txt");
+	
+	this->AddChild(m_info);
+
+	auto* textField = m_info->GetWidgetByIDAndType<tb::TBTextField>(TBIDC("glinfo"));
+	textField->SetText(("OpenGL version: " + std::string(Display::GLVersion())).c_str());
+	
+	m_startMenu = new StartMenu(*this);
 }
 
 RootWidget::~RootWidget()

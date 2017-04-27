@@ -55,8 +55,10 @@ TBFile *TBFile::Open(const char *filename, TBFileMode mode)
 		break;
 	}
 
-	if (!f)
+	if (!f) {
+		LOG(error) << "Could not open: " << filename;
 		return nullptr;
+	}
 
 	PhysFSFile *tbf = new PhysFSFile(f);
 	if (!tbf)

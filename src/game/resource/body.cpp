@@ -90,7 +90,7 @@ static Body::CircleShape ShapeToCircle(const NSVGshape* shape, const glm::mat4& 
 	const cpvec2 min(transform * glm::vec4(path->bounds[0], path->bounds[1], 1.f, 1.f));
 	const cpvec2 max(transform * glm::vec4(path->bounds[2], path->bounds[3], 1.f, 1.f));
 
-	double radius = (max.y - min.x) / 2.f;
+	double radius = (max.y - min.y) / 2.f;
 	cpvec2 pos(min.x + radius, min.y + radius);
 
 	return Body::CircleShape(pos, radius);

@@ -1,0 +1,11 @@
+TBLayout:
+	axis y
+	distribution-position top left
+	position top left
+	TBTextField: id: glinfo
+	TBTextField: text: "arrows ↑ ← →= move"
+	TBTextField: text: "arrow ↓ = fire weapon"
+	TBTextField: text: "space = drop thingy :D"
+	TBTextField: text: "d = show physics bodies"
+	TBTextField: text: "scroll = zoom"
+

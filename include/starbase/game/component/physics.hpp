@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <glm/vec2.hpp>
+
 #include <starbase/game/id.hpp>
 #include <starbase/game/resource/body.hpp>
 #include <starbase/game/chipmunk_safe.hpp>

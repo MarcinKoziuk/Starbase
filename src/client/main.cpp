@@ -43,6 +43,11 @@ static void MainLoop(UI::MainWindow& mainWindow, Display& display, IFilesystem& 
 using CGameParams = EParams<Transform, Physics, ShipControls, Renderable>;
 using EntityManager = TEntityManager<CGameParams>;
 
+float Rand(float a, float b)
+{
+	return ((b - a)*((float)rand() / RAND_MAX)) + a;
+}
+
 class Scene {
 private:
 	EntityManager m_entityManager;
@@ -97,15 +102,17 @@ public:
 			}
 		});
 
-		AddTestShip(ID("models/planets/simple"), glm::vec2(0.f, -50.f), 0, 1.f);
+		AddTestShip(ID("models/planets/simple"), glm::vec2(0.f, -50.f), 0, 1.4f);
 		AddTestShip(ID("models/ships/interceptor-0"), glm::vec2(80.f, 80.f), 0.f, 2.f);
-		testShipId = AddTestShip(ID("models/ships/interceptor-0"), glm::vec2(-80.f, 0.f), 0.4f, 1.f);
+		AddTestShip(ID("models/ships/interceptor-0"), glm::vec2(2000.f, 0.f), 0.4f, 100.f);
+		testShipId = AddTestShip(ID("models/ships/fighter-0"), glm::vec2(-80.f, 0.f), 0.4f, 1.f);
 		m_entityManager.Refresh();
 	}
 
 	bool HandleSDLEvent(SDL_Event event)
 	{
 		Entity& entity = m_entityManager.GetEntity(testShipId);
+		Transform& transf = m_entityManager.GetComponent<Transform>(entity);
 		ShipControls& scontrols = m_entityManager.GetComponent<ShipControls>(entity);
 
 		switch (event.type) {
@@ -118,6 +125,9 @@ public:
 			}
 			if (event.key.keysym.scancode == SDL_SCANCODE_UP) {
 				scontrols.actionFlags.thrustForward = true;
+			}
+			if (event.key.keysym.scancode == SDL_SCANCODE_SPACE) {
+				AddTestShip(ID("models/doodads/box"), transf.pos - glm::vec2(0, -15.f), transf.rot, Rand(0.1,2.0), transf.vel);
 			}
 			return true;
 		case (SDL_KEYUP):
@@ -136,14 +146,14 @@ public:
 			}
 			return true;
 		case (SDL_MOUSEWHEEL):
-			m_renderer.m_zoom += event.wheel.y * 0.1f;
+			m_renderer.m_zoom += event.wheel.y * (0.05f * m_renderer.m_zoom);
 			return true;
 		}
 
 		return false;
 	}
 
-	entity_id AddTestShip(id_t id, glm::vec2 pos, float rot, float scale)
+	entity_id AddTestShip(id_t id, glm::vec2 pos, float rot, float scale, glm::vec2 initialVelocity = glm::vec2(0.f, 0.f))
 	{
 		entity_id ret;
 
@@ -156,6 +166,7 @@ public:
 		transf.pos = pos;
 		transf.rot = rot;
 		transf.scale = glm::vec2(scale, scale);
+		transf.vel = initialVelocity;
 
 		ResourcePtr<Model> modelPtr = m_resourceLoader.Load<Model>(id);
 		ResourcePtr<Body> bodyPtr = m_resourceLoader.Load<Body>(id);
@@ -286,6 +297,7 @@ static std::unique_ptr<tb::TBRenderer> InitUI()
 
 	// Do not optimize our custom implementation away while linking (fixes linux build issue)
     SB_UNUSED(const static auto& _tbFsFix = &tb::TBFile::Open);
+    _tbFsFix("wut", tb::TBFile::MODE_READ);
 
 	tb::TBWidgetsAnimationManager::Init();
 
@@ -293,7 +305,7 @@ static std::unique_ptr<tb::TBRenderer> InitUI()
 	tb::g_tb_lng->Load("ui/language/lng_en.tb.txt");
 
 	// Load the default skin, and override skin that contains the graphics specific to the demo.
-	tb::g_tb_skin->Load("ui/default_skin/skin.tb.txt", "ui/skin/skin.tb.txt");
+	tb::g_tb_skin->Load("ui/starbase_skin/skin.tb.txt"); // , "ui/skin/skin.tb.txt");
 
 	// Register font renderers.
 
@@ -302,14 +314,14 @@ static std::unique_ptr<tb::TBRenderer> InitUI()
 
 	// Add fonts we can use to the font manager.
 
-	tb::g_font_manager->AddFontInfo("ui/vera.ttf", "Vera");
+	tb::g_font_manager->AddFontInfo("ui/fonts/Overpass/Overpass-Regular.ttf", "Cantarell");
 
 
 	// Set the default font description for widgets to one of the fonts we just added
 	tb::TBFontDescription fd;
 
-	fd.SetID(TBIDC("Vera"));
-	fd.SetSize(tb::g_tb_skin->GetDimensionConverter()->DpToPx(14));
+	fd.SetID(TBIDC("Cantarell"));
+	fd.SetSize(tb::g_tb_skin->GetDimensionConverter()->DpToPx(13));
 	tb::g_font_manager->SetDefaultFontDescription(fd);
 
 	// Create the font now.
@@ -317,8 +329,8 @@ static std::unique_ptr<tb::TBRenderer> InitUI()
 
 	// Render some glyphs in one go now since we know we are going to use them. It would work fine
 	// without this since glyphs are rendered when needed, but with some extra updating of the glyph bitmap.
-	if (font)
-		font->RenderGlyphs(u8" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~•·åäöÅÄÖ");
+	//if (font)
+	//	font->RenderGlyphs(u8" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~•·åäöÅÄÖ");
 
 	return std::move(tbRenderer);
 }

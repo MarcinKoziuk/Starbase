@@ -29,12 +29,12 @@ void PhysicsSystem::InitBody(const Entity& ent, Transform& transf, Physics& phys
 	cpFloat moment = 0.0;
 	cpFloat mass = bodyResource.GetMass();
 	for (const auto& poly : bodyResource.GetPolygonShapes()) {
-		moment += cpMomentForPoly(mass, poly.size(), (cpVect*) &poly.front(), cpvzero, 1.0);
+		moment += cpMomentForPoly(mass, poly.size(), (cpVect*) &poly.front(), cpvzero, 0.0);
 
 		cpTransform trans = cpTransformIdentity;
 		trans = cpTransformMult(trans, cpTransformScale(transf.scale.x, transf.scale.y));
 
-		cpShape* shape = cpPolyShapeNew(body, poly.size(), (cpVect*) &poly.front(), trans, 1.0);
+		cpShape* shape = cpPolyShapeNew(body, poly.size(), (cpVect*) &poly.front(), trans, 0.0);
 		/*cpShapeSetMass(shape, 1.0);
 		cpShapeSetDensity(shape, 1.0);
 		cpShapeSetDensity(shape, 1.0);
@@ -43,8 +43,9 @@ void PhysicsSystem::InitBody(const Entity& ent, Transform& transf, Physics& phys
 		phys.cp.shapes.emplace_back(cpShapeUniquePtr(shape));
 	}
 	for (const Body::CircleShape& circle : bodyResource.GetCircleShapes()) {
-		moment += cpMomentForCircle(mass, 0.f, circle.radius, to_cpv(circle.pos));
-		cpShape* shape = cpCircleShapeNew(body, circle.radius * transf.scale.x, cpvzero);//to_cpv(-circle.pos)
+		const cpVect offs = to_cpv(circle.pos * glm::tvec2<cpFloat>(transf.scale));
+		moment += cpMomentForCircle(mass, 0.f, circle.radius, offs);
+		cpShape* shape = cpCircleShapeNew(body, circle.radius * transf.scale.x, offs);
 		cpCircleShape* cshape = (cpCircleShape*)shape;
 		phys.cp.shapes.emplace_back(cpShapeUniquePtr(shape));
 	}
@@ -61,6 +62,9 @@ void PhysicsSystem::InitBody(const Entity& ent, Transform& transf, Physics& phys
 	cpBodySetPosition(body, cpv(transf.pos.x, transf.pos.y));
 
 	cpSpaceAddBody(space, body);
+
+	//cpBodyApplyForceAtWorldPoint(body, to_cpv(transf.vel), cpvzero);
+	cpBodySetVelocity(body, to_cpv(transf.vel));
 }
 
 void PhysicsSystem::PhysicsAdded(const Entity& ent, Transform& transf, Physics& phys)
@@ -79,7 +83,7 @@ void PhysicsSystem::PhysicsRemoved(const Entity& ent, Transform& transf, Physics
 
 void PhysicsSystem::ApplyGravity(cpSpace* space, float dt)
 {
-	const static cpFloat gravityConstant = 11.25;
+	const static cpFloat gravityConstant = 20;
 
 	struct gcontext {
 		cpSpace* space;
@@ -104,7 +108,7 @@ void PhysicsSystem::ApplyGravity(cpSpace* space, float dt)
 			const cpFloat dist = cpvdist(srcPos, tgtPos);
 
 
-			cpFloat vel = gravityConstant * ((srcMass) / std::pow(dist, 2));
+			cpFloat vel = gravityConstant * ((tgtMass * srcMass) / std::pow(dist, 2));
 			cpFloat dir = std::atan2(srcPos.y - tgtPos.y, srcPos.x - tgtPos.x);
 			cpVect force = cpv(std::cos(dir) * vel, std::sin(dir) * vel);
 			//ctx->force = cpvadd(ctx->force, force);
@@ -132,6 +136,7 @@ void PhysicsSystem::Update(Entity& ent, Transform& transf, Physics& phys)
 	cpBody* body = phys.cp.body.get();
 	transf.pos = to_vec2f(cpBodyGetPosition(body));
 	transf.rot = cpvtoangle(cpBodyGetRotation(body));
+	transf.vel = to_vec2f(cpBodyGetVelocity(body));
 }
 
 PhysicsSystem::~PhysicsSystem()

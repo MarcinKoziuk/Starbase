@@ -23,7 +23,7 @@ public:
     bool IsGL2() const;
     bool IsGL3() const;
     bool IsGLES() const;
-    const char* GLVersion() const;
+    static const char* GLVersion();
     glm::tvec2<int> GetWindowSize() const;
 };
 

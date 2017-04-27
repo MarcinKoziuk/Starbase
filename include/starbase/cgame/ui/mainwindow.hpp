@@ -23,6 +23,7 @@ class RootWidget : public tb::TBWidget {
 private:
     const MainWindow& m_mainWindow;
 	StartMenu* m_startMenu;
+	TBWidget* m_info;
 
 public:
 	RootWidget(const MainWindow& mainWindow, const tb::TBRect& size);
@@ -34,7 +35,6 @@ class MainWindow {
 private:
     RootWidget m_root;
 	tb::TBRenderer& m_renderer;
-	SDL_Window* m_sdlWindow;
     bool m_needUpdate;
 
     bool InvokeKey(int key, tb::SPECIAL_KEY specialkey, tb::MODIFIER_KEYS modifierkeys, bool down);

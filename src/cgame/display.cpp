@@ -111,7 +111,7 @@ bool Display::IsGLES() const
     return profile == SDL_GL_CONTEXT_PROFILE_ES;
 }
 
-const char* Display::GLVersion() const
+const char* Display::GLVersion()
 {
     return (const char *) glGetString(GL_VERSION);
 }
