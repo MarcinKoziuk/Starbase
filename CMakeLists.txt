@@ -42,6 +42,9 @@ file(GLOB STARBASE_H "include/starbase/*.hpp")
 
 file(GLOB_RECURSE STARBASE_DATA_FILES "data/*")
 
+file(GLOB_RECURSE EXTLIBS_H
+	"extlibs/optional/optional.hpp")
+
 file(GLOB_RECURSE EXTLIBS_GAME_H
 	"extlibs/physfs/include/*.hpp"
 	"extlibs/nanosvg/nanosvg.h"
@@ -79,7 +82,7 @@ add_executable(${STARBASE_CLIENT_EXECUTABLE}
     ${STARBASE_CLIENT_H}
 )
 
-add_custom_target(${STARBASE_HEADERS} SOURCES ${STARBASE_H})
+add_custom_target(${STARBASE_HEADERS} SOURCES ${STARBASE_H} ${EXTLIBS_H})
 add_custom_target(${STARBASE_DATA} SOURCES ${STARBASE_DATA_FILES})
 
 # --- Set up source groups for visual studio
@@ -113,7 +116,7 @@ if(MSVC)
 	#add_definitions(/utf-8 /wd4828 /EHsc) ???
 	add_definitions(/wd4996)
 else()
-    set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -Wstrict-aliasing -pedantic -ffast-math")
+    set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -Wstrict-aliasing -pedantic -ffast-math -ggdb3")
 endif()
 
 if(STARBASE_STATIC_DEPENDENCIES)
@@ -144,6 +147,7 @@ find_package(TurboBadger REQUIRED)
 include_directories("include")
 include_directories("extlibs/physfs/include")
 include_directories("extlibs/nanosvg")
+include_directories("extlibs")
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 include_directories(SYSTEM ${OPENGL_INCLUDE_DIR})
 include_directories(SYSTEM ${GLEW_INCLUDE_DIR})

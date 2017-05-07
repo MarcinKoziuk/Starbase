@@ -30,7 +30,7 @@ bool Display::Init()
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-    //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2);
+   // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2);
 
     m_window = SDL_CreateWindow(STARBASE_NAME,
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
@@ -44,6 +44,8 @@ bool Display::Init()
 
 	SDL_GLContext glContext = SDL_GL_CreateContext(m_window);
 	SDL_GL_MakeCurrent(m_window, glContext);
+
+    SDL_GL_SetSwapInterval(1);
 
 	//SDL_ShowCursor(1);
 

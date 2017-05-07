@@ -1,3 +1,7 @@
+﻿#include <array>
+#include <limits>
+#include <cmath>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -10,331 +14,163 @@
 #include <starbase/cgame/display.hpp>
 #include <starbase/cgame/component/renderable.hpp>
 #include <starbase/cgame/renderer/renderer.hpp>
+#include <starbase/cgame/renderer/glhelpers.hpp>
 
 #include <chipmunk/chipmunk_structs.h>
 
-#ifndef NDEBUG
-#define GLCALL(CALL)													\
-	do {																\
-		CALL;															\
-		GLenum err;														\
-		while ((err = glGetError()) != GL_NO_ERROR) {					\
-			LOG(error) << "GL error " << err;							\
-		}																\
-	} while (0)
-#else
-#define GLCALL(CALL) CALL
-#endif
+#include <SDL2/SDL.h>//for SDL_GetTicks()
+
+
 
 namespace Starbase {
-
-static void ShowInfoLog(
-	GLuint object,
-	PFNGLGETSHADERIVPROC glGet__iv,
-	PFNGLGETSHADERINFOLOGPROC glGet__InfoLog
-)
-{
-	GLint len;
-	std::string log;
-	glGet__iv(object, GL_INFO_LOG_LENGTH, &len);
-	log.resize(len);
-	glGet__InfoLog(object, len, NULL, &log[0]);
-	LOG(error) << log;
-}
 
 Renderer::Renderer(Display& display, IFilesystem& filesystem, ResourceLoader& rl)
 	: m_filesystem(filesystem)
 	, m_display(display)
 	, m_resourceLoader(rl)
-	, m_debugDraw(false)
-	, m_zoom(5.f)
-{}
-
-GLuint Renderer::MakeVBO(GLenum target, const void* data, GLsizei size, GLenum usage)
+	, m_entityRenderer(m_filesystem, m_renderParams)
 {
-	GLuint vbo;
-	GLCALL(glGenBuffers(1, &vbo));
-	GLCALL(glBindBuffer(target, vbo));
-	GLCALL(glBufferData(target, size, data, usage));
-	return vbo;
+	m_renderParams.windowSize = m_display.GetWindowSize();
+	m_renderParams.debug = false;
+	m_renderParams.wireframe = false;
+	m_renderParams.zoom = 5.f;
 }
 
-GLuint Renderer::MakeShader(GLenum type, const char* filename)
+bool Renderer::InitFramebuffer(Framebuffer& fb)
 {
-	std::string str;
+	const glm::tvec2<int> windowSize = m_display.GetWindowSize();
 
-	if (!m_filesystem.ReadString(filename, &str))
-		return 0;
+	GLCALL(glActiveTexture(GL_TEXTURE0));
+	GLCALL(glGenTextures(1, &fb.texture));
+	GLCALL(glBindTexture(GL_TEXTURE_2D, fb.texture));
+	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+	GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowSize.x, windowSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL));
+	GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
 
-	GLchar* source = (GLchar*) &str[0];
-	GLint length = (GLint) str.length();
+	/* Depth buffer */
+	GLCALL(glGenRenderbuffers(1, &fb.rboDepth));
+	GLCALL(glBindRenderbuffer(GL_RENDERBUFFER, fb.rboDepth));
+	GLCALL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y));
+	GLCALL(glBindRenderbuffer(GL_RENDERBUFFER, 0));
 
-	GLuint shader;
-	GLCALL(shader = glCreateShader(type));
-	GLCALL(glShaderSource(shader, 1, (const GLchar**)&source, &length));
-	GLCALL(glCompileShader(shader));
-
-	GLint shaderOk;
-	GLCALL(glGetShaderiv(shader, GL_COMPILE_STATUS, &shaderOk));
-
-	if (!shaderOk) {
-		LOG(error) << "Failed to compile shader " << filename;
-		ShowInfoLog(shader, glGetShaderiv, glGetShaderInfoLog);
-		GLCALL(glDeleteShader(shader));
-		return 0;
+	/* Framebuffer to link everything together */
+	GLCALL(glGenFramebuffers(1, &fb.fbo));
+	GLCALL(glBindFramebuffer(GL_FRAMEBUFFER, fb.fbo));
+	GLCALL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb.texture, 0));
+	GLCALL(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, fb.rboDepth));
+	GLenum status;
+	if ((status = glCheckFramebufferStatus(GL_FRAMEBUFFER)) != GL_FRAMEBUFFER_COMPLETE) {
+		LOG(error) << "glCheckFramebufferStatus: error " << status;
+		return false;
 	}
+	GLCALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 
-	return shader;
-}
+	static const GLfloat vertices[] = {
+		-1, -1,
+		1, -1,
+		-1,  1,
+		1,  1,
+	};
+	glGenBuffers(1, &fb.vboVertices);
+	glBindBuffer(GL_ARRAY_BUFFER, fb.vboVertices);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-GLuint Renderer::MakeProgram(GLuint vertexShader, GLuint fragmentShader)
-{
-	GLuint program;
-	GLCALL(program = glCreateProgram());
-	GLCALL(glAttachShader(program, vertexShader));
-	GLCALL(glAttachShader(program, fragmentShader));
-	GLCALL(glLinkProgram(program));
-
-	GLint programOk;
-	GLCALL(glGetProgramiv(program, GL_LINK_STATUS, &programOk));
-	if (!programOk) {
-		LOG(error) << "Failed to link shader program";
-		GLCALL(glDeleteProgram(program));
-		return 0;
-	}
-
-	return program;
-}
-
-bool Renderer::InitPathShader()
-{
-	m_pathShader.vertexShader = MakeShader(GL_VERTEX_SHADER, "shaders/simple.v.glsl");
-	if (!m_pathShader.vertexShader)
+	fb.program = MakeProgram("shaders/postproc.v.glsl", "shaders/postproc.f.glsl", m_filesystem);
+	if (!fb.program)
 		return false;
 
-	m_pathShader.fragmentShader = MakeShader(GL_FRAGMENT_SHADER, "shaders/simple.f.glsl");
-	if (!m_pathShader.fragmentShader)
-		return false;
-
-	m_pathShader.program = MakeProgram(m_pathShader.vertexShader, m_pathShader.fragmentShader);
-	if (!m_pathShader.program)
-		return false;
-
-	GLCALL(m_pathShader.attributes.position = glGetAttribLocation(m_pathShader.program, "position"));
-
-	GLCALL(m_pathShader.uniforms.color = glGetUniformLocation(m_pathShader.program, "color"));
-	GLCALL(m_pathShader.uniforms.mvp = glGetUniformLocation(m_pathShader.program, "mvp"));
+	GLCALL(fb.attributes.vCoord = glGetAttribLocation(fb.program, "vCoord"));
+	GLCALL(fb.uniforms.fboTexture = glGetUniformLocation(fb.program, "fboTexture"));
+	GLCALL(fb.uniforms.time = glGetUniformLocation(fb.program, "time"));
 
 	return true;
 }
 
-bool Renderer::InitModelGL(ResourcePtr<Model> model, ModelGL* modelGl)
+static void DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
-	for (const Model::Path& path : model->GetPaths()) {
-		const GLfloat* positions = reinterpret_cast<const GLfloat*>(&path.points.front());
-		const GLsizei numPositions = static_cast<GLsizei>(sizeof(GLfloat) * 2 * path.points.size());
-
-		GLuint vbo = MakeVBO(GL_ARRAY_BUFFER, positions, numPositions, GL_STATIC_DRAW);
-		modelGl->pathVBOs.push_back(vbo);
-	}
-
-	return true;
-}
-
-// for debug draw
-bool Renderer::InitBodyGL(ResourcePtr<Body> bodyPtr, const Physics& physics, ModelGL* modelGl)
-{
-	for (const auto& polyShape : bodyPtr->GetPolygonShapes()) {
-		const cpFloat* positions = reinterpret_cast<const cpFloat*>(&polyShape.front());
-		const GLsizei numPositions = static_cast<GLsizei>(sizeof(cpFloat) * 2 * polyShape.size());
-
-		GLuint vbo = MakeVBO(GL_ARRAY_BUFFER, positions, numPositions, GL_STATIC_DRAW);
-		modelGl->pathVBOs.push_back(vbo);
-	}
-
-	return true;
+    LOG(error) << message;
 }
 
 bool Renderer::Init()
 {
-	return InitPathShader();
+	if (!m_entityRenderer.Init())
+		return false;
+
+	if (!InitFramebuffer(m_fbA))
+		return false;
+
+	//glDebugMessageCallback​(&DebugCallback, nullptr​);
+
+	return true;
 }
 
 void Renderer::Shutdown()
 {}
 
-glm::mat4 Renderer::CalcMatrix(const Transform& trans)
-{
-	glm::mat4 model, view, projection;
-
-	glm::vec2 windowSize = m_display.GetWindowSize();
-	//float aspect = windowSize.x / (float)windowSize.y;
-
-	projection = glm::ortho(-windowSize.x/m_zoom, windowSize.x/m_zoom, -windowSize.y/m_zoom, windowSize.y/m_zoom, -1.0f, 1.0f);;
-
-
-	model = glm::translate(model, glm::vec3(trans.pos.x, trans.pos.y, 0));
-	model = glm::rotate(model, trans.rot, glm::vec3(0.f, 0.f, 1.f));
-	model = glm::scale(model, glm::vec3(trans.scale.x, trans.scale.y, 1.f));
-	
-	view = glm::mat4(1.f);
-
-	return projection * view * model;
-}
-
 void Renderer::RenderableAdded(const Renderable& rend)
 {
-	const auto& model = rend.model;
-
-	if (!m_modelGlData.count(model.Id())) {
-		auto it = m_modelGlData.emplace(model.Id(), ModelGL());
-		ModelGL& modelGl = it.first->second;
-
-		bool ok = InitModelGL(model, &modelGl);
-		if (SB_UNLIKELY(!ok)) {
-			m_modelGlData.erase(it.first);
-		}
-	}
+	m_entityRenderer.RenderableAdded(rend);
 }
 
 void Renderer::RenderableRemoved(const Renderable& rend)
 {
-	m_modelGlData.erase(rend.model.Id());
+	m_entityRenderer.RenderableRemoved(rend);
+}
+
+void Renderer::PhysicsAdded(const Physics& phys)
+{
+	m_entityRenderer.PhysicsAdded(phys);
+}
+
+void Renderer::PhysicsRemoved(const Physics& phys)
+{
+	m_entityRenderer.PhysicsRemoved(phys);
 }
 
 void Renderer::BeginDraw()
 {
+	glBindFramebuffer(GL_FRAMEBUFFER, m_fbA.fbo);	
+
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void Renderer::DebugDraw(const Entity& ent, const Transform& trans, const Physics& physics)
+void Renderer::EndDraw()
 {
-	ModelGL modelGl;
-	InitBodyGL(physics.body, physics, &modelGl);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	glm::mat4 mvp = CalcMatrix(trans);
+	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//glClear(GL_COLOR_BUFFER_BIT);
 
-	const Body& body = *physics.body;
-	std::size_t numShapes = body.GetPolygonShapes().size();
+	float ticksf = (float)SDL_GetTicks();
 
-	for (std::size_t i = 0; i < numShapes; i++) {
-		GLuint vbo = modelGl.pathVBOs[i];
-		const std::vector<glm::tvec2<cpFloat>>& polyShape = body.GetPolygonShapes()[i];
+	glUseProgram(m_fbA.program);
+	glBindTexture(GL_TEXTURE_2D, m_fbA.texture);
+	glUniform1i(m_fbA.uniforms.fboTexture, 0);
+	glUniform1f(m_fbA.uniforms.time, ticksf);
+	glEnableVertexAttribArray(m_fbA.attributes.vCoord);
 
-		GLCALL(glUniform3f(m_pathShader.uniforms.color, 0.0, 1.0, 0.0));
-		GLCALL(glUniformMatrix4fv(m_pathShader.uniforms.mvp, 1, GL_FALSE, glm::value_ptr(mvp)));
-
-		GLCALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-		GLCALL(glVertexAttribPointer(
-			m_pathShader.attributes.position,
-			2,
-			GL_DOUBLE,
-			GL_FALSE,
-			sizeof(GLdouble) * 2,
-			nullptr
-		));
-
-		GLCALL(glEnableVertexAttribArray(m_pathShader.attributes.position));
-
-		GLCALL(glDrawArrays(
-			GL_LINE_LOOP,
-			0,
-			(GLsizei)polyShape.size()
-		));
-
-		GLCALL(glDisableVertexAttribArray(m_pathShader.attributes.position));
-	}
-
-	GLCALL(glUniform3f(m_pathShader.uniforms.color, 0.0, 1.0, 0.0));
-
-	// center!
-	const float vals[] = {
-		-1, 1,
-		-1, -1,
-		1, -1,
-		1, 1 };
-
-	GLuint vbo = MakeVBO(GL_ARRAY_BUFFER, &vals, sizeof(vals)*sizeof(float), GL_STATIC_DRAW);
-
-	GLCALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-	GLCALL(glVertexAttribPointer(
-		m_pathShader.attributes.position,
-		2,
-		GL_FLOAT,
-		GL_FALSE,
-		sizeof(GLfloat) * 2,
-		nullptr
-	));
-
-	GLCALL(glEnableVertexAttribArray(m_pathShader.attributes.position));
-
-	GLCALL(glDrawArrays(
-		GL_LINE_LOOP,
-		0,
-		4
-	));
-
-	GLCALL(glDisableVertexAttribArray(m_pathShader.attributes.position));
-
-	glDeleteBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, m_fbA.vboVertices);
+	glVertexAttribPointer(
+		m_fbA.attributes.vCoord,  // attribute
+		2,                  // number of elements per vertex, here (x,y)
+		GL_FLOAT,           // the type of each element
+		GL_FALSE,           // take our values as-is
+		0,                  // no extra data between each position
+		0                   // offset of first element
+	);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glDisableVertexAttribArray(m_fbA.attributes.vCoord);
 }
 
 void Renderer::Draw(const Entity& ent, const Transform& trans, const Renderable& rend, const Physics* maybePhysics)
 {
-	const id_t modelId = rend.model.Id();
-
-	if (SB_UNLIKELY(!m_modelGlData.count(modelId))) {
-		LOG(error) << "Need to implicitly initialize renderable; this may cause a memory leak!";
-		RenderableAdded(rend);
-	}
-
-	const ModelGL& modelGl = m_modelGlData.at(modelId);
-	const Model& model = *rend.model.Get();
-
-	GLCALL(glUseProgram(m_pathShader.program));
-
-	std::size_t numPaths = model.GetPaths().size();
-	assert(modelGl.pathVBOs.size() == numPaths);
-
-	for (std::size_t i = 0; i < numPaths; i++) {
-		GLuint vbo = modelGl.pathVBOs[i];
-		const Model::Path& path = model.GetPaths()[i];
-		const Model::Style& style = path.style;
-
-		glm::mat4 mvp = CalcMatrix(trans);
-
-		GLCALL(glUniform3f(m_pathShader.uniforms.color, style.color.x, style.color.y, style.color.z));
-		GLCALL(glUniformMatrix4fv(m_pathShader.uniforms.mvp, 1, GL_FALSE, glm::value_ptr(mvp)));
-
-		GLCALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-		GLCALL(glVertexAttribPointer(
-			m_pathShader.attributes.position,
-			2,
-			GL_FLOAT,
-			GL_FALSE,
-			sizeof(GLfloat) * 2,
-			nullptr
-		));
-
-		GLCALL(glEnableVertexAttribArray(m_pathShader.attributes.position));
-
-		GLenum mode = path.closed ? GL_LINE_LOOP : GL_LINE_STRIP;
-		GLCALL(glDrawArrays(
-			mode,
-			0,
-			(GLsizei)path.points.size()
-		));
-
-		GLCALL(glDisableVertexAttribArray(m_pathShader.attributes.position));
-	}
-
-	if (m_debugDraw && maybePhysics != nullptr) {
-		DebugDraw(ent, trans, *maybePhysics);
-	}
+	m_entityRenderer.Draw(ent, trans, rend, maybePhysics);
 }
-
-void Renderer::EndDraw()
-{}
 
 } // namespace Starbase

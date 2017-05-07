@@ -9,28 +9,32 @@
 #include <glm/mat4x4.hpp>
 
 #include <starbase/gl.hpp>
+
 #include <starbase/game/fwd.hpp>
 #include <starbase/game/fs/ifilesystem.hpp>
+
 #include <starbase/cgame/fwd.hpp>
+#include <starbase/cgame/renderer/entityrenderer.hpp>
+#include <starbase/cgame/renderer/framebuffer.hpp>
 
 namespace Starbase {
 
-struct PathShader {
-	GLuint vertexShader, fragmentShader;
+struct Framebuffer {
+	GLuint fbo;
 	GLuint program;
 
+	GLuint texture;
+	GLuint rboDepth;
+	GLuint vboVertices;
+
 	struct {
-		GLint color;
-		GLint mvp;
+		GLint fboTexture;
+		GLint time;
 	} uniforms;
 
 	struct {
-		GLint position;
+		GLint vCoord;
 	} attributes;
-};
-
-struct ModelGL {
-	std::vector<GLuint> pathVBOs;
 };
 
 class Renderer {
@@ -38,25 +42,15 @@ private:
 	IFilesystem& m_filesystem;
 	Display& m_display;
 	ResourceLoader& m_resourceLoader;
+	EntityRenderer m_entityRenderer;
 
-	PathShader m_pathShader;
-
-	std::unordered_map<id_t, ModelGL> m_modelGlData;
-
-	GLuint MakeVBO(GLenum target, const void* data, GLsizei size, GLenum usage);
-	GLuint MakeShader(GLenum type, const char* filename);
-	GLuint MakeProgram(GLuint vertexShader, GLuint fragmentShader);
-
-	bool InitPathShader();
-	bool InitModelGL(ResourcePtr<Model> model, ModelGL* modelGl);
-	bool InitBodyGL(ResourcePtr<Body> model, const Physics& physics, ModelGL* modelGl);
-	glm::mat4 CalcMatrix(const Transform& trans);
-
-	void DebugDraw(const Entity& ent, const Transform& trans, const Physics& physics);
+	Framebuffer m_fbA;
+	Framebuffer m_fbB;
+	
+	bool InitFramebuffer(Framebuffer& fb);
 
 public:
-	bool m_debugDraw;
-	float m_zoom;
+	RenderParams m_renderParams;
 
 	Renderer(Display& display, IFilesystem& filesystem, ResourceLoader& rl);
 
@@ -69,6 +63,10 @@ public:
 	void RenderableAdded(const Renderable& rend);
 
 	void RenderableRemoved(const Renderable& rend);
+
+	void PhysicsAdded(const Physics& phys);
+
+	void PhysicsRemoved(const Physics& phys);
 
 	void BeginDraw();
 

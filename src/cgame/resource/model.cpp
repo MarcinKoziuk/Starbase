@@ -96,9 +96,9 @@ std::vector<Model::Path> ShapeToPaths(const NSVGshape* shape, Model::Style style
 				auto v4 = transform * glm::vec4(p, 1.f, 1.f);
 				const glm::vec2 pt = glm::vec2(v4);
 
-				//if (iz % 3 == 0) {
+				if (iz % 3 == 0) {
 				path.points.push_back(pt);
-				//}
+				}
 				iz++;
 			}
 		}

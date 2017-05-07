@@ -74,6 +74,7 @@ public:
 				m_renderer.RenderableAdded(m_entityManager.GetComponent<Renderable>(ent));
 			}
 			if (m_entityManager.HasComponents<Transform, Physics>(ent)) {
+				m_renderer.PhysicsAdded(m_entityManager.GetComponent<Physics>(ent));
 				m_cpPhysics.PhysicsAdded(ent, m_entityManager.GetComponent<Transform>(ent), m_entityManager.GetComponent<Physics>(ent));
 			}
 		});
@@ -82,6 +83,7 @@ public:
 				m_renderer.RenderableRemoved(m_entityManager.GetComponent<Renderable>(ent));
 			}
 			if (m_entityManager.HasComponents<Transform, Physics>(ent)) {
+				m_renderer.PhysicsRemoved(m_entityManager.GetComponent<Physics>(ent));
 				m_cpPhysics.PhysicsRemoved(ent, m_entityManager.GetComponent<Transform>(ent), m_entityManager.GetComponent<Physics>(ent));
 			}
 		});
@@ -90,6 +92,7 @@ public:
 				m_renderer.RenderableAdded(m_entityManager.GetComponent<Renderable>(ent));
 			}
 			if (m_entityManager.HasComponents<Transform, Physics>(ent) && !m_entityManager.HasComponents<Transform, Physics>(ent)) {
+				m_renderer.PhysicsAdded(m_entityManager.GetComponent<Physics>(ent));
 				m_cpPhysics.PhysicsAdded(ent, m_entityManager.GetComponent<Transform>(ent), m_entityManager.GetComponent<Physics>(ent));
 			}
 		});
@@ -98,13 +101,14 @@ public:
 				m_renderer.RenderableRemoved(m_entityManager.GetComponent<Renderable>(ent));
 			}
 			if (m_entityManager.HasComponents<Transform, Physics>(ent) && !m_entityManager.HasComponents<Transform, Physics>(ent)) {
+				m_renderer.PhysicsRemoved(m_entityManager.GetComponent<Physics>(ent));
 				m_cpPhysics.PhysicsRemoved(ent, m_entityManager.GetComponent<Transform>(ent), m_entityManager.GetComponent<Physics>(ent));
 			}
 		});
 
 		AddTestShip(ID("models/planets/simple"), glm::vec2(0.f, -50.f), 0, 1.4f);
 		AddTestShip(ID("models/ships/interceptor-0"), glm::vec2(80.f, 80.f), 0.f, 2.f);
-		AddTestShip(ID("models/ships/interceptor-0"), glm::vec2(2000.f, 0.f), 0.4f, 100.f);
+		AddTestShip(ID("models/ships/linesan"), glm::vec2(2000.f, 0.f), 0.4f, 100.f);
 		testShipId = AddTestShip(ID("models/ships/fighter-0"), glm::vec2(-80.f, 0.f), 0.4f, 1.f);
 		m_entityManager.Refresh();
 	}
@@ -114,6 +118,7 @@ public:
 		Entity& entity = m_entityManager.GetEntity(testShipId);
 		Transform& transf = m_entityManager.GetComponent<Transform>(entity);
 		ShipControls& scontrols = m_entityManager.GetComponent<ShipControls>(entity);
+		RenderParams& renderParams = m_renderer.m_renderParams;
 
 		switch (event.type) {
 		case (SDL_KEYDOWN):
@@ -141,12 +146,16 @@ public:
 				scontrols.actionFlags.thrustForward = false;
 			}
 			if (event.key.keysym.scancode == SDL_SCANCODE_D) {
-				LOG(info) << "Setting debug drawing to " << m_renderer.m_debugDraw;
-				m_renderer.m_debugDraw = !m_renderer.m_debugDraw;
+				LOG(info) << "Setting debug drawing to " << !renderParams.debug;
+				renderParams.debug = !renderParams.debug;
+			}
+			if (event.key.keysym.scancode == SDL_SCANCODE_W) {
+				LOG(info) << "Setting wireframe mode to " << !renderParams.wireframe;
+				renderParams.wireframe = !renderParams.wireframe;
 			}
 			return true;
 		case (SDL_MOUSEWHEEL):
-			m_renderer.m_zoom += event.wheel.y * (0.05f * m_renderer.m_zoom);
+			renderParams.zoom += event.wheel.y * (0.05f * renderParams.zoom);
 			return true;
 		}
 
