@@ -38,10 +38,11 @@ Renderer::Renderer(Display& display, IFilesystem& filesystem, ResourceLoader& rl
 
 bool Renderer::InitFramebuffer(Framebuffer& fb)
 {
-	const glm::tvec2<int> windowSize = m_display.GetWindowSize();
+	const glm::tvec2<int> windowSize = m_renderParams.windowSize;
 
 	GLCALL(glActiveTexture(GL_TEXTURE0));
 	GLCALL(glGenTextures(1, &fb.texture));
+
 	GLCALL(glBindTexture(GL_TEXTURE_2D, fb.texture));
 	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
@@ -53,6 +54,7 @@ bool Renderer::InitFramebuffer(Framebuffer& fb)
 	/* Depth buffer */
 	GLCALL(glGenRenderbuffers(1, &fb.rboDepth));
 	GLCALL(glBindRenderbuffer(GL_RENDERBUFFER, fb.rboDepth));
+	
 	GLCALL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y));
 	GLCALL(glBindRenderbuffer(GL_RENDERBUFFER, 0));
 
@@ -83,11 +85,66 @@ bool Renderer::InitFramebuffer(Framebuffer& fb)
 	if (!fb.program)
 		return false;
 
-	GLCALL(fb.attributes.vCoord = glGetAttribLocation(fb.program, "vCoord"));
-	GLCALL(fb.uniforms.fboTexture = glGetUniformLocation(fb.program, "fboTexture"));
-	GLCALL(fb.uniforms.time = glGetUniformLocation(fb.program, "time"));
+	fb.attributes.texCoord = GetAttribLocation(fb.program, "texCoord");
+
+	fb.uniforms.fboTexture = GetUniformLocation(fb.program, "fboTexture");
+	fb.uniforms.time = GetUniformLocation(fb.program, "time");
+	fb.uniforms.resolution = GetUniformLocation(fb.program, "resolution");
+	fb.uniforms.blurDirection = GetUniformLocation(fb.program, "blurDirection");
+	fb.uniforms.blurRadius = GetUniformLocation(fb.program, "blurRadius");
 
 	return true;
+}
+
+void Renderer::RescaleFramebuffer(Framebuffer& fb)
+{
+	const glm::tvec2<int> windowSize = m_renderParams.windowSize;
+
+	glBindTexture(GL_TEXTURE_2D, fb.texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowSize.x, windowSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glBindRenderbuffer(GL_RENDERBUFFER, fb.rboDepth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+}
+
+void Renderer::DrawFramebuffer(Framebuffer& fb, GLuint destVBO, int step)
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, destVBO);
+
+	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//glClear(GL_COLOR_BUFFER_BIT);
+
+	float ticksf = (float)SDL_GetTicks();
+	glm::vec2 resf = glm::vec2(m_renderParams.windowSize);
+
+	glUseProgram(fb.program);
+	glBindTexture(GL_TEXTURE_2D, fb.texture);
+
+	glUniform1i(fb.uniforms.fboTexture, 0);
+	glUniform2f(fb.uniforms.resolution, resf.x, resf.y);
+	glUniform1f(fb.uniforms.time, ticksf);
+	if (step == 1)
+		glUniform2f(fb.uniforms.blurDirection, 1.f, 0.f);
+	else
+		glUniform2f(fb.uniforms.blurDirection, 0.f, 1.f);
+	glUniform1f(fb.uniforms.blurRadius, 2.0f);
+
+	glEnableVertexAttribArray(fb.attributes.texCoord);
+
+	glBindBuffer(GL_ARRAY_BUFFER, fb.vboVertices);
+	glVertexAttribPointer(
+		fb.attributes.texCoord,  // attribute
+		2,                  // number of elements per vertex, here (x,y)
+		GL_FLOAT,           // the type of each element
+		GL_FALSE,           // take our values as-is
+		0,                  // no extra data between each position
+		0                   // offset of first element
+	);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glDisableVertexAttribArray(fb.attributes.texCoord);
 }
 
 static void DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
@@ -101,6 +158,9 @@ bool Renderer::Init()
 		return false;
 
 	if (!InitFramebuffer(m_fbA))
+		return false;
+
+	if (!InitFramebuffer(m_fbB))
 		return false;
 
 	//glDebugMessageCallback​(&DebugCallback, nullptr​);
@@ -133,7 +193,14 @@ void Renderer::PhysicsRemoved(const Physics& phys)
 
 void Renderer::BeginDraw()
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, m_fbA.fbo);	
+	glm::tvec2<int> curWindowSize = m_display.GetWindowSize();
+	if (curWindowSize != m_renderParams.windowSize) {
+		m_renderParams.windowSize = curWindowSize;
+		RescaleFramebuffer(m_fbA);
+		RescaleFramebuffer(m_fbB);
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_fbA.fbo);
 
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -141,7 +208,10 @@ void Renderer::BeginDraw()
 
 void Renderer::EndDraw()
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	DrawFramebuffer(m_fbA, m_fbB.fbo, 1);
+	DrawFramebuffer(m_fbB, 0, 2);
+
+	/*glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -153,11 +223,11 @@ void Renderer::EndDraw()
 	glBindTexture(GL_TEXTURE_2D, m_fbA.texture);
 	glUniform1i(m_fbA.uniforms.fboTexture, 0);
 	glUniform1f(m_fbA.uniforms.time, ticksf);
-	glEnableVertexAttribArray(m_fbA.attributes.vCoord);
+	glEnableVertexAttribArray(m_fbA.attributes.texCoord);
 
 	glBindBuffer(GL_ARRAY_BUFFER, m_fbA.vboVertices);
 	glVertexAttribPointer(
-		m_fbA.attributes.vCoord,  // attribute
+		m_fbA.attributes.texCoord,  // attribute
 		2,                  // number of elements per vertex, here (x,y)
 		GL_FLOAT,           // the type of each element
 		GL_FALSE,           // take our values as-is
@@ -165,7 +235,7 @@ void Renderer::EndDraw()
 		0                   // offset of first element
 	);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glDisableVertexAttribArray(m_fbA.attributes.vCoord);
+	glDisableVertexAttribArray(m_fbA.attributes.texCoord);*/
 }
 
 void Renderer::Draw(const Entity& ent, const Transform& trans, const Renderable& rend, const Physics* maybePhysics)

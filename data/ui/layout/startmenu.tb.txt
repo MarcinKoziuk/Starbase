@@ -4,6 +4,12 @@ WindowInfo
 	size 200 400
 TBLayout: axis: y, size: available
 	TBButton
+		text Arcade
+	TBButton
+		text Skirmish
+	TBButton
+		text Multiplayer
+	TBButton
 		id start_game
 		text Start
 	TBButton

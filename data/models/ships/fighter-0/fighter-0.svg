@@ -27,10 +27,10 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="2.8284271"
-     inkscape:cx="242.23833"
-     inkscape:cy="849.02539"
+     inkscape:cx="393.54788"
+     inkscape:cy="877.30966"
      inkscape:document-units="px"
-     inkscape:current-layer="layer4"
+     inkscape:current-layer="layer2"
      showgrid="true"
      inkscape:window-width="1920"
      inkscape:window-height="1137"
@@ -72,13 +72,6 @@
      id="layer2"
      inkscape:label="@body"
      style="display:inline;opacity:0.244">
-    <rect
-       style="opacity:1;fill:#ff0000;stroke:#ff0000;stroke-width:12.2807951;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:5;stroke-dasharray:none"
-       id="rect4534"
-       width="85.145615"
-       height="247.98119"
-       x="322.42719"
-       y="53.371605" />
     <ellipse
        style="opacity:1;fill:#ff0000;stroke:#ff0000;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:5;stroke-dasharray:none"
        id="path4538"
@@ -86,6 +79,18 @@
        cy="177.3622"
        rx="2.5"
        ry="5" />
+    <rect
+       style="opacity:1;fill:none;stroke:#000000;stroke-width:6;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect4167"
+       width="240"
+       height="85"
+       x="245"
+       y="207.3622" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:6;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 345,47.362205 40,0 30,159.999995 -100,0 z"
+       id="path4169"
+       inkscape:connector-curvature="0" />
   </g>
   <g
      inkscape:groupmode="layer"

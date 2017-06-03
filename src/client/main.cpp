@@ -323,14 +323,18 @@ static std::unique_ptr<tb::TBRenderer> InitUI()
 
 	// Add fonts we can use to the font manager.
 
-	tb::g_font_manager->AddFontInfo("ui/fonts/Overpass/Overpass-Regular.ttf", "Cantarell");
 
+	tb::g_font_manager->AddFontInfo("ui/fonts/Overpass/Overpass-Regular.ttf", "Overpass");
+	tb::g_font_manager->AddFontInfo("ui/fonts/Exo/Exo-Regular.ttf", "Exo");
+	tb::g_font_manager->AddFontInfo("ui/fonts/Geo/Geo-Regular.ttf", "Geo");
+	//tb::g_font_manager->AddFontInfo("ui/fonts/Muli/Muli-Regular.ttf", "Cantarell");
+	tb::g_font_manager->AddFontInfo("ui/fonts/muli.ttf", "Cantarell");
 
 	// Set the default font description for widgets to one of the fonts we just added
 	tb::TBFontDescription fd;
 
-	fd.SetID(TBIDC("Cantarell"));
-	fd.SetSize(tb::g_tb_skin->GetDimensionConverter()->DpToPx(13));
+	fd.SetID(TBIDC("Geo"));
+	fd.SetSize(tb::g_tb_skin->GetDimensionConverter()->DpToPx(20));
 	tb::g_font_manager->SetDefaultFontDescription(fd);
 
 	// Create the font now.

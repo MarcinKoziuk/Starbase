@@ -30,10 +30,14 @@ struct Framebuffer {
 	struct {
 		GLint fboTexture;
 		GLint time;
+		GLint resolution;
+
+		GLint blurDirection;
+		GLint blurRadius;
 	} uniforms;
 
 	struct {
-		GLint vCoord;
+		GLint texCoord;
 	} attributes;
 };
 
@@ -48,6 +52,8 @@ private:
 	Framebuffer m_fbB;
 	
 	bool InitFramebuffer(Framebuffer& fb);
+	void RescaleFramebuffer(Framebuffer& fb);
+	void DrawFramebuffer(Framebuffer& fb, GLuint destFBO, int step);
 
 public:
 	RenderParams m_renderParams;

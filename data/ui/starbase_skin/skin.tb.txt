@@ -11,18 +11,18 @@ description
 	supported-dpi 96 192 288 384
 defaults
 	spacing 5
-	text-color #fefefe
+	text-color #fffff
 	placeholder
 		opacity 0.2
 	disabled
 		opacity 0.3
 elements
 	TBButton
-		text-color #86d3f0
+		text-color #ffffff
 		bitmap button.png
 		cut 17
-		expand 7
-		padding 6 8
+		expand 5
+		padding 10 20
 		overrides
 			element TBButtonInGroup
 				condition: target: parent, property: skin, value: button_group
@@ -32,16 +32,16 @@ elements
 			element TBButton.hovered
 				state hovered
 	TBButton.pressed
-		text-color #86d3f0
+		text-color #ffffff
 		bitmap button_pressed.png
 		cut 17
-		expand 7
+		expand 5
 
 	TBButton.hovered
-		text-color #86d3f0
+		text-color #ffffff
 		bitmap button_hov.png
 		cut 17
-		expand 7
+		expand 5
 
 	TBButton.flat
 		text-color #fefefe
@@ -290,8 +290,8 @@ elements
 				state selected
 	TBWindow.selected
 		bitmap window_active.png
-		cut 16
-		expand 12
+		cut 50
+		expand 24
 	TBWindow.close
 		bitmap window_close.png
 		type Image
@@ -306,11 +306,11 @@ elements
 		min-width 20
 		min-height 20
 	TBWindow.mover
-		#text-color #86d3f0
-		#bitmap window_mover_bg_tile.png
-		type Tile
-		expand -1
-		padding 4
+		text-color #ffffff
+		bitmap window_mover.png
+		cut 6
+		expand 0
+		padding 8 12
 		overrides
 			element TBWindow.mover.active
 				state selected
@@ -319,12 +319,12 @@ elements
 				state all
 	TBWindow.mover.overlay
 		#bitmap window_mover_overlay.png
-		text-color #86d3f0
+		text-color #ffffff
 		cut 12
 		expand 3
 	TBWindow.mover.active
 		clone TBWindow.mover
-		text-color #86d3f0
+		text-color #ffffff
 		overrides
 		overlays
 		children

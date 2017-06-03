@@ -30,12 +30,12 @@ bool Display::Init()
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-   // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2);
+    //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
     m_window = SDL_CreateWindow(STARBASE_NAME,
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-        1280, 800,
-		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+        1280, 720,
+		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
     if (m_window == NULL) {
         LOG(fatal) << "SDL Window creation failed: " << SDL_GetError();
@@ -86,7 +86,7 @@ void Display::Swap()
 glm::tvec2<int> Display::GetWindowSize() const
 {
     int x, y;
-    SDL_GetWindowSize(m_window, &x, &y);
+	SDL_GL_GetDrawableSize(m_window, &x, &y);
     return glm::tvec2<int>(x, y);
 }
 

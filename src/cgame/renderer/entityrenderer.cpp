@@ -267,7 +267,7 @@ void EntityRenderer::NormalDraw(const Entity& ent, const Transform& trans, const
 	for (std::size_t i = 0; i < numPaths; i++) {
 		const Model::Path& path = model.GetPaths()[i];
 		const Model::Style& style = path.style;
-		const PathGL pathGL = modelGL.paths[i];
+		const PathGL& pathGL = modelGL.paths[i];
 
 		glm::mat4 mvp = CalcMatrix(trans, m_renderParams);
 

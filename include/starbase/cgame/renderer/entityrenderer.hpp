@@ -18,6 +18,7 @@ public:
 
 		struct {
 			GLint mvp;
+			GLint resolution;
 			GLint scale;
 			GLint thickness;
 			GLint zoom;
