@@ -2,9 +2,9 @@
 
 namespace Starbase {
 
-    struct Entity;
 	struct Physics;
     struct Transform;
+	struct ShipControls;
     
     class Display;
     class Renderer;

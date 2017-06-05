@@ -2,6 +2,8 @@
 
 #include <starbase/game/logging.hpp>
 
+#include <starbase/game/component/transform.hpp>
+
 #include <starbase/game/system/shipcontrols_system.hpp>
 #include <starbase/game/chipmunk_safe.hpp>
 

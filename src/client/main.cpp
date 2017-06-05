@@ -18,7 +18,7 @@
 #include <starbase/game/resource/text.hpp>
 #include <starbase/game/resource/body.hpp>
 #include <starbase/game/entity/entity.hpp>
-#include <starbase/game/entity/em.hpp>
+#include <starbase/game/entity/entitymanager.hpp>
 #include <starbase/game/component/physics.hpp>
 #include <starbase/game/component/transform.hpp>
 #include <starbase/game/component/shipcontrols.hpp>
@@ -88,7 +88,7 @@ public:
 			}
 		});
 		m_entityManager.componentAdded.connect([this](const Entity& ent, Entity::component_bitset oldComponents) {
-			if (m_entityManager.HasComponent<Renderable>(ent) && !m_entityManager.HasComponent<Renderable>(oldComponents)) {
+			if (m_entityManager.HasComponent<Renderable>(ent) && !Entity::HasComponent<Renderable>(oldComponents)) {
 				m_renderer.RenderableAdded(m_entityManager.GetComponent<Renderable>(ent));
 			}
 			if (m_entityManager.HasComponents<Transform, Physics>(ent) && !m_entityManager.HasComponents<Transform, Physics>(ent)) {
@@ -97,7 +97,7 @@ public:
 			}
 		});
 		m_entityManager.componentWillBeRemoved.connect([this](const Entity& ent, Entity::component_bitset newComponents) {
-			if (m_entityManager.HasComponent<Renderable>(ent) && !m_entityManager.HasComponent<Renderable>(newComponents)) {
+			if (m_entityManager.HasComponent<Renderable>(ent) && !Entity::HasComponent<Renderable>(newComponents)) {
 				m_renderer.RenderableRemoved(m_entityManager.GetComponent<Renderable>(ent));
 			}
 			if (m_entityManager.HasComponents<Transform, Physics>(ent) && !m_entityManager.HasComponents<Transform, Physics>(ent)) {
@@ -107,7 +107,7 @@ public:
 		});
 
 		AddTestShip(ID("models/planets/simple"), glm::vec2(0.f, -50.f), 0, 1.4f);
-		AddTestShip(ID("models/ships/interceptor-0"), glm::vec2(80.f, 80.f), 0.f, 2.f);
+		//AddTestShip(ID("models/ships/interceptor-0"), glm::vec2(80.f, 80.f), 0.f, 2.f);
 		//AddTestShip(ID("models/ships/linesan"), glm::vec2(2000.f, 0.f), 0.4f, 100.f);
 		testShipId = AddTestShip(ID("models/ships/fighter-1"), glm::vec2(-80.f, 0.f), 0.4f, 1.f);
 		m_entityManager.Refresh();
@@ -218,15 +218,8 @@ public:
 
 		m_renderer.BeginDraw();
 		m_entityManager.ForEachEntityWithComponents<Transform, Renderable>([this](Entity& ent, Transform& trans, Renderable& rend) {
-			Physics* phys = nullptr;
-			ShipControls* contr = nullptr;
-			if (m_entityManager.HasComponent<Physics>(ent)) {
-				phys = &m_entityManager.GetComponent<Physics>(ent);
-			}
-			if (m_entityManager.HasComponent<ShipControls>(ent)) {
-				contr = &m_entityManager.GetComponent<ShipControls>(ent);
-			}
-
+			Physics* phys = ent.GetComponentOrNull<Physics>();
+			ShipControls* contr = ent.GetComponentOrNull<ShipControls>();
 			m_renderer.Draw(Renderer::ComponentGroup(ent, trans, rend, phys, contr));
 		});
 		m_renderer.EndDraw();

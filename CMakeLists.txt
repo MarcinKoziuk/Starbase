@@ -130,6 +130,8 @@ add_definitions(-DSTARBASE_COMPILETIME_SOURCE_PATH="${CMAKE_SOURCE_DIR}")
 add_definitions(-DGLM_FORCE_RADIANS=1)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 
+add_definitions(-DSTARBASE_CLIENT=1)
+
 # --- Dependencies ---
 find_package(Threads REQUIRED)
 find_package(Boost COMPONENTS system REQUIRED)

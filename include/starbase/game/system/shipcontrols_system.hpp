@@ -1,7 +1,7 @@
 #pragma once
 
 #include <starbase/game/entity/entity.hpp>
-#include <starbase/game/entity/em.hpp>
+#include <starbase/game/entity/entitymanager.hpp>
 #include <starbase/game/resource/resourceloader.hpp>
 #include <starbase/game/component/physics.hpp>
 #include <starbase/game/component/shipcontrols.hpp>
