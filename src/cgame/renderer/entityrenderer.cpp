@@ -11,6 +11,7 @@
 #include <starbase/game/entity/entity.hpp>
 #include <starbase/game/component/transform.hpp>
 #include <starbase/game/component/physics.hpp>
+#include <starbase/game/component/shipcontrols.hpp>
 
 #include <starbase/cgame/component/renderable.hpp>
 #include <starbase/cgame/renderer/glhelpers.hpp>
@@ -227,7 +228,8 @@ static glm::mat4 CalcMatrix(const Transform& trans, const RenderParams& renderPa
 
 	projection = glm::ortho(-w / zoom, w / zoom, -h / zoom, h / zoom, -1.0f, 1.0f);;
 
-	model = glm::translate(model, glm::vec3(trans.pos.x, trans.pos.y, 0));
+	model = glm::translate(model, glm::vec3(trans.pos, 0));
+	model = glm::translate(model, glm::vec3(-renderParams.offset, 0));
 	model = glm::rotate(model, trans.rot, glm::vec3(0.f, 0.f, 1.f));
 	model = glm::scale(model, glm::vec3(trans.scale.x, trans.scale.y, 1.f));
 
@@ -236,20 +238,28 @@ static glm::mat4 CalcMatrix(const Transform& trans, const RenderParams& renderPa
 	return projection * view * model;
 }
 
-void EntityRenderer::Draw(const Entity& ent, const Transform& trans, const Renderable& rend, const Physics* maybePhysics)
+void EntityRenderer::Draw(const EntityRenderer::ComponentGroup& cg)
 {
-	NormalDraw(ent, trans, rend);
+	NormalDraw(cg);
 
-	if (maybePhysics != nullptr && m_renderParams.debug) {
-		DebugDraw(ent, trans, *maybePhysics);
+	if (cg.phys != nullptr && m_renderParams.debug) {
+		DebugDraw(cg.ent, cg.trans, *cg.phys);
 	}
 }
 
-void EntityRenderer::NormalDraw(const Entity& ent, const Transform& trans, const Renderable& rend)
+static bool IsPathVisible(const EntityRenderer::ComponentGroup& cg, const Model::Path& path)
 {
-	const id_t modelId = rend.model.Id();
+	if (path.group == ID("_thrust")) {
+		return cg.contr != nullptr && cg.contr->actionFlags.thrustForward;
+	}
+	return true;
+}
+
+void EntityRenderer::NormalDraw(const EntityRenderer::ComponentGroup& cg)
+{
+	const id_t modelId = cg.rend.model.Id();
 	const ModelGL& modelGL = m_modelsGL.at(modelId);
-	const Model& model = *rend.model.Get();
+	const Model& model = *cg.rend.model.Get();
 
 	const std::size_t numPaths = model.GetPaths().size();
 	assert(modelGL.paths.size() == numPaths);
@@ -269,11 +279,14 @@ void EntityRenderer::NormalDraw(const Entity& ent, const Transform& trans, const
 		const Model::Style& style = path.style;
 		const PathGL& pathGL = modelGL.paths[i];
 
-		glm::mat4 mvp = CalcMatrix(trans, m_renderParams);
+		if (!IsPathVisible(cg, path))
+			continue;
+
+		glm::mat4 mvp = CalcMatrix(cg.trans, m_renderParams);
 
 		GLCALL(glUniformMatrix4fv(m_pathShader.uniforms.mvp, 1, GL_FALSE, glm::value_ptr(mvp)));
 
-		GLCALL(glUniform2f(m_pathShader.uniforms.scale, trans.scale.x, trans.scale.y));
+		GLCALL(glUniform2f(m_pathShader.uniforms.scale, cg.trans.scale.x, cg.trans.scale.y));
 		GLCALL(glUniform1f(m_pathShader.uniforms.thickness, style.thickness));
 		GLCALL(glUniform1f(m_pathShader.uniforms.zoom, m_renderParams.zoom));
 

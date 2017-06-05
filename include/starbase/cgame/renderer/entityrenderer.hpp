@@ -8,6 +8,7 @@
 #include <starbase/game/fwd.hpp>
 #include <starbase/cgame/fwd.hpp>
 #include <starbase/cgame/renderer/renderparams.hpp>
+#include <starbase/cgame/renderer/camera.hpp>
 
 namespace Starbase {
 
@@ -75,6 +76,16 @@ public:
 		BodyGL(const Body& body);
 	};
 
+	struct ComponentGroup {
+		const Entity& ent;
+		const Transform& trans;
+		const Renderable& rend;
+		const Physics* phys;
+		const ShipControls* contr;
+
+		ComponentGroup(const Entity& ent, const Transform& trans, const Renderable& rend, const Physics* phys, const ShipControls* contr)
+			: ent(ent), trans(trans), rend(rend), phys(phys), contr(contr) {}
+	};
 
 private:
 	IFilesystem& m_filesystem;
@@ -87,7 +98,7 @@ private:
 	std::unordered_map<id_t, BodyGL> m_bodiesGL;
 
 private:
-	void NormalDraw(const Entity& ent, const Transform& trans, const Renderable& rend);
+	void NormalDraw(const ComponentGroup& cg);
 
 	void DebugDraw(const Entity& ent, const Transform& trans, const Physics& physics);
 
@@ -104,7 +115,7 @@ public:
 
 	void PhysicsRemoved(const Physics& phys);
 
-	void Draw(const Entity& ent, const Transform& trans, const Renderable& rend, const Physics* maybePhysics);
+	void Draw(const ComponentGroup& cg);
 };
 
 } // namespace Starbase

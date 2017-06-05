@@ -13,7 +13,7 @@
 
 namespace Starbase {
 
-static std::vector<Model::Path> ShapeToPaths(const NSVGshape* shape, Model::Style style, const glm::mat4& transform);
+static std::vector<Model::Path> ShapeToPaths(const NSVGshape* shape, Model::Style style, const glm::mat4& transform, id_t group);
 
 std::shared_ptr<const Model> Model::placeholder = Model::MakePlaceholder();
 
@@ -48,31 +48,31 @@ std::shared_ptr<const Model> Model::Create(id_t id, IFilesystem& filesystem)
 			continue;
 		}
 
-		model->AddShape(shape, transform);
+		model->AddShape(shape, transform, ID(group));
 	}
 
 	return model;
 }
 
-void Model::AddShape(const NSVGshape* shape, const glm::mat4& transform)
+void Model::AddShape(const NSVGshape* shape, const glm::mat4& transform, id_t group)
 {
 	Model::Style style;
 	style.thickness = shape->strokeWidth;
-	style.color = glm::vec4(1.f, 0.f, 1.f, 1.f);
+	style.color = glm::vec4(0.f, 0.f, 1.f, 1.f);
 	style.color.w = shape->opacity;
 
 	if (shape->stroke.type == NSVG_PAINT_COLOR) {
-		if (shape->stroke.color != 0xff000000) {
+		const unsigned currentColor = shape->stroke.color;
+		if (currentColor != 0xff000000 && currentColor != 0xffffffff) {
 			style.color = Hex3ToNormalizedColor4(shape->stroke.color, style.color.w);
 		}
 	}
 
-	const auto paths = ShapeToPaths(shape, style, transform);
+	const auto paths = ShapeToPaths(shape, style, transform, group);
 	m_paths.insert(m_paths.end(), paths.begin(), paths.end());
 }
 
-
-std::vector<Model::Path> ShapeToPaths(const NSVGshape* shape, Model::Style style, const glm::mat4& transform)
+static std::vector<Model::Path> ShapeToPaths(const NSVGshape* shape, Model::Style style, const glm::mat4& transform, id_t group)
 {
 	std::vector<Model::Path> paths;
 
@@ -80,6 +80,7 @@ std::vector<Model::Path> ShapeToPaths(const NSVGshape* shape, Model::Style style
 		Model::Path path;
 		path.style = style;
 		path.closed = svgPath->closed == 1;
+		path.group = group;
 		
 		for (int i = 0; i < svgPath->npts - 1; i += 3) {
 			float* p = &svgPath->pts[i * 2];

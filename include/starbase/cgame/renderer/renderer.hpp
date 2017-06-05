@@ -16,6 +16,7 @@
 #include <starbase/cgame/fwd.hpp>
 #include <starbase/cgame/renderer/entityrenderer.hpp>
 #include <starbase/cgame/renderer/framebuffer.hpp>
+#include <starbase/cgame/renderer/camera.hpp>
 
 namespace Starbase {
 
@@ -23,6 +24,8 @@ struct Framebuffer {
 	GLuint fbo;
 	GLuint program;
 
+	int msaa;
+	GLenum textureType;
 	GLuint texture;
 	GLuint rboDepth;
 	GLuint vboVertices;
@@ -48,14 +51,19 @@ private:
 	ResourceLoader& m_resourceLoader;
 	EntityRenderer m_entityRenderer;
 
-	Framebuffer m_fbA;
-	Framebuffer m_fbB;
+	Framebuffer m_fbMulti;
+	Framebuffer m_fbBlurHoriz;
+	Framebuffer m_fbBlurVert;
 	
-	bool InitFramebuffer(Framebuffer& fb);
+	enum DrawStep { BLUR_HORIZ, BLUR_VERT };
+
+	bool InitFramebuffer(Framebuffer& fb, int msaa);
 	void RescaleFramebuffer(Framebuffer& fb);
 	void DrawFramebuffer(Framebuffer& fb, GLuint destFBO, int step);
 
 public:
+	typedef EntityRenderer::ComponentGroup ComponentGroup;
+
 	RenderParams m_renderParams;
 
 	Renderer(Display& display, IFilesystem& filesystem, ResourceLoader& rl);
@@ -76,7 +84,7 @@ public:
 
 	void BeginDraw();
 
-	void Draw(const Entity& ent, const Transform& trans, const Renderable& rend, const Physics* maybePhysics);
+	void Draw(const ComponentGroup& cg);
 
 	void EndDraw();
 };

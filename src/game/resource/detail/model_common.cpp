@@ -80,7 +80,7 @@ std::unique_ptr<ModelFiles> GetModelFiles(IFilesystem& fs, const std::string& pa
 	return nullptr;
 }
 
-static glm::vec2 GetShapeCenter(const NSVGshape* shape)
+glm::vec2 GetShapeCenter(const NSVGshape* shape)
 {
 	glm::vec2 center;
 	NSVGpath* path = shape->paths;

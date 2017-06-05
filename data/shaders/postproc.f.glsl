@@ -114,7 +114,11 @@ void main(void)
     //the amount to blur, i.e. how far off center to sample from 
     //1.0 -> blur by one pixel
     //2.0 -> blur by two pixels, etc.
-    float blur = blurRadius/1024.0; 
+    float blur = 0.0;
+	if (blurDirection.x > 0.0)
+		blur = blurRadius / resolution.x;
+	else
+		blur = blurRadius / resolution.y;
 
     //the direction of our blur
     //(1.0, 0.0) -> x-axis blur
@@ -126,22 +130,24 @@ void main(void)
 
 	//0	0.000003	0.000229	0.005977	0.060598	0.24173	0.382925
 
-	sum += texture2D(fboTexture, vec2(tc.x - 6.0*blur*hstep, tc.y - 4.0*blur*vstep)) * 0.0;
-	sum += texture2D(fboTexture, vec2(tc.x - 5.0*blur*hstep, tc.y - 4.0*blur*vstep)) * 0.000003;
-    sum += texture2D(fboTexture, vec2(tc.x - 4.0*blur*hstep, tc.y - 4.0*blur*vstep)) * 0.000229;
-    sum += texture2D(fboTexture, vec2(tc.x - 3.0*blur*hstep, tc.y - 3.0*blur*vstep)) * 0.005977;
-    sum += texture2D(fboTexture, vec2(tc.x - 2.0*blur*hstep, tc.y - 2.0*blur*vstep)) * 0.060598;
-    sum += texture2D(fboTexture, vec2(tc.x - 1.0*blur*hstep, tc.y - 1.0*blur*vstep)) * 0.24173;
+	float mul = 1.25;
+	
+	sum += texture2D(fboTexture, vec2(tc.x - 6.0*blur*hstep, tc.y - 6.0*blur*vstep)) * mul * 0.0;
+	sum += texture2D(fboTexture, vec2(tc.x - 5.0*blur*hstep, tc.y - 5.0*blur*vstep)) * mul * 0.000003;
+    sum += texture2D(fboTexture, vec2(tc.x - 4.0*blur*hstep, tc.y - 4.0*blur*vstep)) * mul * 0.000229;
+    sum += texture2D(fboTexture, vec2(tc.x - 3.0*blur*hstep, tc.y - 3.0*blur*vstep)) * mul * 0.005977;
+    sum += texture2D(fboTexture, vec2(tc.x - 2.0*blur*hstep, tc.y - 2.0*blur*vstep)) * mul * 0.060598;
+    sum += texture2D(fboTexture, vec2(tc.x - 1.0*blur*hstep, tc.y - 1.0*blur*vstep)) * mul * 0.24173;
 
     sum += texture2D(fboTexture, vec2(tc.x, tc.y)) * 0.382925;
 
-    sum += texture2D(fboTexture, vec2(tc.x + 1.0*blur*hstep, tc.y + 1.0*blur*vstep)) * 0.24173;
-    sum += texture2D(fboTexture, vec2(tc.x + 2.0*blur*hstep, tc.y + 2.0*blur*vstep)) * 0.060598;
-    sum += texture2D(fboTexture, vec2(tc.x + 3.0*blur*hstep, tc.y + 3.0*blur*vstep)) * 0.005977;
-    sum += texture2D(fboTexture, vec2(tc.x + 4.0*blur*hstep, tc.y + 4.0*blur*vstep)) * 0.000229;
-	sum += texture2D(fboTexture, vec2(tc.x + 5.0*blur*hstep, tc.y + 4.0*blur*vstep)) * 0.000003;
-	sum += texture2D(fboTexture, vec2(tc.x + 6.0*blur*hstep, tc.y + 4.0*blur*vstep)) * 0.0;
-
+    sum += texture2D(fboTexture, vec2(tc.x + 1.0*blur*hstep, tc.y + 1.0*blur*vstep)) * mul * 0.24173;
+    sum += texture2D(fboTexture, vec2(tc.x + 2.0*blur*hstep, tc.y + 2.0*blur*vstep)) * mul * 0.060598;
+    sum += texture2D(fboTexture, vec2(tc.x + 3.0*blur*hstep, tc.y + 3.0*blur*vstep)) * mul * 0.005977;
+    sum += texture2D(fboTexture, vec2(tc.x + 4.0*blur*hstep, tc.y + 4.0*blur*vstep)) * mul * 0.000229;
+	sum += texture2D(fboTexture, vec2(tc.x + 5.0*blur*hstep, tc.y + 5.0*blur*vstep)) * mul * 0.000003;
+	sum += texture2D(fboTexture, vec2(tc.x + 6.0*blur*hstep, tc.y + 6.0*blur*vstep)) * mul * 0.0;
+	
 	/*
     sum += texture2D(fboTexture, vec2(tc.x - 4.0*blur*hstep, tc.y - 4.0*blur*vstep)) * 0.0162162162;
     sum += texture2D(fboTexture, vec2(tc.x - 3.0*blur*hstep, tc.y - 3.0*blur*vstep)) * 0.0540540541;
@@ -153,8 +159,8 @@ void main(void)
     sum += texture2D(fboTexture, vec2(tc.x + 1.0*blur*hstep, tc.y + 1.0*blur*vstep)) * 0.1945945946;
     sum += texture2D(fboTexture, vec2(tc.x + 2.0*blur*hstep, tc.y + 2.0*blur*vstep)) * 0.1216216216;
     sum += texture2D(fboTexture, vec2(tc.x + 3.0*blur*hstep, tc.y + 3.0*blur*vstep)) * 0.0540540541;
-    sum += texture2D(fboTexture, vec2(tc.x + 4.0*blur*hstep, tc.y + 4.0*blur*vstep)) * 0.0162162162;*/
-
+    sum += texture2D(fboTexture, vec2(tc.x + 4.0*blur*hstep, tc.y + 4.0*blur*vstep)) * 0.0162162162;
+	*/
 
 
 	gl_FragColor = texture2D(fboTexture, texcoord) + vec4(sum.rgb, 1.0);
@@ -162,5 +168,5 @@ void main(void)
 	//gl_FragColor = texture2D(fboTexture, texcoord);
 
 	vec4 color = apply(fboTexture, texcoord * resolution, resolution);
-	//gl_FragColor = color + vec4(sum.rgb, 1.0);
+	gl_FragColor = color + vec4(sum.rgb, 1.0);
 }

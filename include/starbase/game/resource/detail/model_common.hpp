@@ -33,6 +33,8 @@ struct ModelFiles {
 
 std::unique_ptr<ModelFiles> GetModelFiles(IFilesystem& fs, const std::string& path);
 
+glm::vec2 GetShapeCenter(const NSVGshape* shape);
+
 glm::mat4 GetTransformMatrix(const ModelFiles& mf);
 
 glm::vec3 Hex3ToNormalizedColor3(std::uint32_t hex);

@@ -18,7 +18,7 @@ struct Entity {
 	bool needsToDie : 1;
 	bool isnew : 1;
 
-	Entity(entity_id id)
+	explicit Entity(entity_id id)
 		: id(id)
 		, alive(true)
 		, needsToDie(false)

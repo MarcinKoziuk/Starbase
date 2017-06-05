@@ -55,7 +55,17 @@ void PhysicsSystem::InitBody(const Entity& ent, Transform& transf, Physics& phys
 
 	for (auto& it : phys.cp.shapes) {
 		cpShape* shape = it.get();
+
+		const cpFloat friction = phys.body->GetFriction();
+		if (friction) {
+			cpShapeSetFriction(shape, friction);
+		}
+		else {
+			cpShapeSetFriction(shape, 0.05);
+		}
+
 		cpSpaceAddShape(space, shape);
+
 	}
 
 	cpBodySetAngle(body, transf.rot);

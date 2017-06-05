@@ -7,7 +7,7 @@ namespace Starbase {
 
 static bool IsFlat(const std::vector<glm::vec2>& curve)
 {
-    const float tol = 10;
+    const float tol = 5;
 
     float ax = 3.0*curve[1][0] - 2.0*curve[0][0] - curve[3][0]; ax *= ax;
     float ay = 3.0*curve[1][1] - 2.0*curve[0][1] - curve[3][1]; ay *= ay;

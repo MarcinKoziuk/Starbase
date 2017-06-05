@@ -16,7 +16,8 @@ static Body::CircleShape ShapeToCircle(const NSVGshape* shape, const glm::mat4& 
 std::shared_ptr<const Body> Body::placeholder = std::make_shared<Body>();
 
 Body::Body()
-	: m_mass(1.0)
+	: m_mass(1.f)
+	, m_friction(0.f)
 {}
 
 std::size_t Body::CalculateSize() const
@@ -50,6 +51,9 @@ std::shared_ptr<const Body> Body::Create(id_t id, IFilesystem& filesystem)
 		if (physicsCfg["mass"]) {
 			body->m_mass = physicsCfg["mass"].as<float>();
 		}
+		if (physicsCfg["friction"]) {
+			body->m_friction = physicsCfg["friction"].as<float>();
+		}
 	}
 
 	NSVGimage& svg = *modelFiles->svg;
@@ -62,11 +66,29 @@ std::shared_ptr<const Body> Body::Create(id_t id, IFilesystem& filesystem)
 			body->AddShape(shape, transform);
 		}
 		else if (std::strcmp(group, HARDPOINTS_GROUP_LABEL) == 0) {
-
+			body->AddHardpoint(shape, transform);
 		}
 	}
 
 	return body;
+}
+
+void Body::AddHardpoint(const NSVGshape* shape, const glm::mat4& transform)
+{
+	const char* name = shape->id;
+
+	Hardpoint hardpoint;
+	hardpoint.pos = glm::vec2(transform * glm::vec4(GetShapeCenter(shape), 1.f, 1.f));
+	hardpoint.supports.weapons = true;
+
+	if (std::strcmp(name, "medium")) {
+		hardpoint.size = Body::Hardpoint::MEDIUM;
+	}
+	else if (std::strcmp(name, "small")) {
+		hardpoint.size = Body::Hardpoint::SMALL;
+	}
+
+	m_hardpoints.push_back(hardpoint);
 }
 
 void Body::AddShape(const NSVGshape* shape, const glm::mat4& transform)
@@ -125,9 +147,9 @@ static std::vector<std::vector<cpvec2>> ShapeToPolygons(const NSVGshape* shape, 
 				// TODO: we are losing precision here! (Casteljau should return double)
 				const cpvec2 pt = cpvec2(transform * glm::vec4(p, 1.f, 1.f));
 
-				//if (iz % 3 == 0) {
+				if (iz % 3 == 0) {
 					points.push_back(pt);
-				//}
+				}
 				iz++;
 			}
 		}

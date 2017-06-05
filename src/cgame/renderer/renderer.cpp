@@ -36,36 +36,51 @@ Renderer::Renderer(Display& display, IFilesystem& filesystem, ResourceLoader& rl
 	m_renderParams.zoom = 5.f;
 }
 
-bool Renderer::InitFramebuffer(Framebuffer& fb)
+bool Renderer::InitFramebuffer(Framebuffer& fb, int msaa)
 {
 	const glm::tvec2<int> windowSize = m_renderParams.windowSize;
+
+	fb.msaa = msaa;
+	fb.textureType = msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 
 	GLCALL(glActiveTexture(GL_TEXTURE0));
 	GLCALL(glGenTextures(1, &fb.texture));
 
-	GLCALL(glBindTexture(GL_TEXTURE_2D, fb.texture));
-	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-	GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowSize.x, windowSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL));
-	GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
+	GLCALL(glBindTexture(fb.textureType, fb.texture));
+
+	if (msaa)
+		GLCALL(glTexImage2DMultisample(fb.textureType, msaa, GL_RGBA, windowSize.x, windowSize.y, true));
+	else
+		GLCALL(glTexImage2D(fb.textureType, 0, GL_RGBA, windowSize.x, windowSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL));
+
+	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+	//GLCALL(glTexParameteri(fb.textureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+	//GLCALL(glTexParameteri(fb.textureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+
+
+
+	GLCALL(glBindTexture(fb.textureType, 0));
 
 	/* Depth buffer */
 	GLCALL(glGenRenderbuffers(1, &fb.rboDepth));
 	GLCALL(glBindRenderbuffer(GL_RENDERBUFFER, fb.rboDepth));
-	
-	GLCALL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y));
+
+	if (msaa)
+		GLCALL(glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y));
+	else
+		GLCALL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y));
 	GLCALL(glBindRenderbuffer(GL_RENDERBUFFER, 0));
 
 	/* Framebuffer to link everything together */
 	GLCALL(glGenFramebuffers(1, &fb.fbo));
 	GLCALL(glBindFramebuffer(GL_FRAMEBUFFER, fb.fbo));
-	GLCALL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb.texture, 0));
+	GLCALL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, fb.textureType, fb.texture, 0));
 	GLCALL(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, fb.rboDepth));
 	GLenum status;
 	if ((status = glCheckFramebufferStatus(GL_FRAMEBUFFER)) != GL_FRAMEBUFFER_COMPLETE) {
 		LOG(error) << "glCheckFramebufferStatus: error " << status;
+		GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
 		return false;
 	}
 	GLCALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
@@ -100,13 +115,19 @@ void Renderer::RescaleFramebuffer(Framebuffer& fb)
 {
 	const glm::tvec2<int> windowSize = m_renderParams.windowSize;
 
-	glBindTexture(GL_TEXTURE_2D, fb.texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowSize.x, windowSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	GLCALL(glBindTexture(fb.textureType, fb.texture));
+	if (fb.msaa)
+		GLCALL(glTexImage2DMultisample(fb.textureType, fb.msaa, GL_RGBA, windowSize.x, windowSize.y, true));
+	else
+		GLCALL(glTexImage2D(fb.textureType, 0, GL_RGBA, windowSize.x, windowSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL));
+	//glBindTexture(fb.textureType, 0);
 
 	glBindRenderbuffer(GL_RENDERBUFFER, fb.rboDepth);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y);
-	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	if (fb.msaa)
+		GLCALL(glRenderbufferStorageMultisample(GL_RENDERBUFFER, fb.msaa, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y));
+	else
+		GLCALL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y));
+	//glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
 void Renderer::DrawFramebuffer(Framebuffer& fb, GLuint destVBO, int step)
@@ -121,7 +142,7 @@ void Renderer::DrawFramebuffer(Framebuffer& fb, GLuint destVBO, int step)
 	glm::vec2 resf = glm::vec2(m_renderParams.windowSize);
 
 	glUseProgram(fb.program);
-	glBindTexture(GL_TEXTURE_2D, fb.texture);
+	glBindTexture(fb.textureType, fb.texture);
 
 	glUniform1i(fb.uniforms.fboTexture, 0);
 	glUniform2f(fb.uniforms.resolution, resf.x, resf.y);
@@ -157,10 +178,13 @@ bool Renderer::Init()
 	if (!m_entityRenderer.Init())
 		return false;
 
-	if (!InitFramebuffer(m_fbA))
+    if (!InitFramebuffer(m_fbMulti, 4))
 		return false;
 
-	if (!InitFramebuffer(m_fbB))
+	if (!InitFramebuffer(m_fbBlurHoriz, 0))
+		return false;
+
+	if (!InitFramebuffer(m_fbBlurVert, 0))
 		return false;
 
 	//glDebugMessageCallback​(&DebugCallback, nullptr​);
@@ -194,13 +218,17 @@ void Renderer::PhysicsRemoved(const Physics& phys)
 void Renderer::BeginDraw()
 {
 	glm::tvec2<int> curWindowSize = m_display.GetWindowSize();
+	
+	glViewport(0, 0, curWindowSize.x, curWindowSize.y);
+
 	if (curWindowSize != m_renderParams.windowSize) {
 		m_renderParams.windowSize = curWindowSize;
-		RescaleFramebuffer(m_fbA);
-		RescaleFramebuffer(m_fbB);
+		RescaleFramebuffer(m_fbMulti);
+		RescaleFramebuffer(m_fbBlurHoriz);
+		RescaleFramebuffer(m_fbBlurVert);
 	}
 
-	glBindFramebuffer(GL_FRAMEBUFFER, m_fbA.fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_fbMulti.fbo);
 
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -208,8 +236,17 @@ void Renderer::BeginDraw()
 
 void Renderer::EndDraw()
 {
-	DrawFramebuffer(m_fbA, m_fbB.fbo, 1);
-	DrawFramebuffer(m_fbB, 0, 2);
+	const glm::tvec2<int> windowSize = m_renderParams.windowSize;
+
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbMulti.fbo);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbBlurHoriz.fbo);
+	glBlitFramebuffer(
+		0, 0, windowSize.x, windowSize.y,
+		0, 0, windowSize.x, windowSize.y,
+		GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+	DrawFramebuffer(m_fbBlurHoriz, m_fbBlurVert.fbo, 1);
+	DrawFramebuffer(m_fbBlurVert, 0, 2);
 
 	/*glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -238,9 +275,9 @@ void Renderer::EndDraw()
 	glDisableVertexAttribArray(m_fbA.attributes.texCoord);*/
 }
 
-void Renderer::Draw(const Entity& ent, const Transform& trans, const Renderable& rend, const Physics* maybePhysics)
+void Renderer::Draw(const Renderer::ComponentGroup& cg)
 {
-	m_entityRenderer.Draw(ent, trans, rend, maybePhysics);
+	m_entityRenderer.Draw(cg);
 }
 
 } // namespace Starbase

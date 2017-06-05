@@ -18,7 +18,7 @@
 #include <starbase/game/resource/text.hpp>
 #include <starbase/game/resource/body.hpp>
 #include <starbase/game/entity/entity.hpp>
-#include <starbase/game/entity/entitymanager.hpp>
+#include <starbase/game/entity/em.hpp>
 #include <starbase/game/component/physics.hpp>
 #include <starbase/game/component/transform.hpp>
 #include <starbase/game/component/shipcontrols.hpp>
@@ -30,6 +30,7 @@
 #include <starbase/cgame/ui/mainwindow.hpp>
 #include <starbase/cgame/ui/renderer/tb_renderer_gl.hpp>
 #include <starbase/cgame/component/renderable.hpp>
+#include <starbase/cgame/renderer/camera.hpp>
 
 using namespace Starbase;
 
@@ -39,9 +40,6 @@ static std::unique_ptr<tb::TBRenderer> InitUI();
 static void ShutdownUI();
 static void MainLoop(UI::MainWindow& mainWindow, Display& display, IFilesystem& fs);
 
-
-using CGameParams = EParams<Transform, Physics, ShipControls, Renderable>;
-using EntityManager = TEntityManager<CGameParams>;
 
 float Rand(float a, float b)
 {
@@ -57,6 +55,7 @@ private:
 	ShipControlsSystem m_shipControlsSystem;
 	Display& m_display;
 	IFilesystem& m_fs;
+	Camera m_camera;
 
 	entity_id testShipId;
 
@@ -65,6 +64,7 @@ public:
 		: m_display(display)
 		, m_resourceLoader(fs)
 		, m_renderer(display, fs, m_resourceLoader)
+		, m_shipControlsSystem(m_entityManager, m_resourceLoader)
         , m_fs(fs)
 	{
 		m_renderer.Init();
@@ -108,9 +108,14 @@ public:
 
 		AddTestShip(ID("models/planets/simple"), glm::vec2(0.f, -50.f), 0, 1.4f);
 		AddTestShip(ID("models/ships/interceptor-0"), glm::vec2(80.f, 80.f), 0.f, 2.f);
-		AddTestShip(ID("models/ships/linesan"), glm::vec2(2000.f, 0.f), 0.4f, 100.f);
-		testShipId = AddTestShip(ID("models/ships/fighter-0"), glm::vec2(-80.f, 0.f), 0.4f, 1.f);
+		//AddTestShip(ID("models/ships/linesan"), glm::vec2(2000.f, 0.f), 0.4f, 100.f);
+		testShipId = AddTestShip(ID("models/ships/fighter-1"), glm::vec2(-80.f, 0.f), 0.4f, 1.f);
 		m_entityManager.Refresh();
+
+		Entity& testShip = m_entityManager.GetEntity(testShipId);
+		const Transform& testShipTransform = m_entityManager.GetComponent<Transform>(testShip);
+
+		m_camera = Camera(glm::vec2(400, 200));
 	}
 
 	bool HandleSDLEvent(SDL_Event event)
@@ -144,6 +149,9 @@ public:
 			}
 			if (event.key.keysym.scancode == SDL_SCANCODE_UP) {
 				scontrols.actionFlags.thrustForward = false;
+			}
+			if (event.key.keysym.scancode == SDL_SCANCODE_DOWN) {
+				scontrols.actionFlags.firePrimary = true;
 			}
 			if (event.key.keysym.scancode == SDL_SCANCODE_D) {
 				LOG(info) << "Setting debug drawing to " << !renderParams.debug;
@@ -195,21 +203,31 @@ public:
 			m_cpPhysics.Update(ent, trans, phys);
 		});
 
-		m_entityManager.ForEachEntityWithComponents<Physics, ShipControls>([this](Entity& ent, Physics& phys, ShipControls& scontrols) {
-			m_shipControlsSystem.Update(ent, phys, scontrols);
+		m_entityManager.ForEachEntityWithComponents<Transform, Physics, ShipControls>([this](Entity& ent, Transform& trans, Physics& phys, ShipControls& scontrols) {
+			m_shipControlsSystem.Update(ent, trans, phys, scontrols);
 		});
 	}
 
 	void Render()
 	{
+		Entity& testShip = m_entityManager.GetEntity(testShipId);
+		const Transform& testShipTransform = m_entityManager.GetComponent<Transform>(testShip);
+
+		m_camera.Follow(testShipTransform.pos);
+		m_renderer.m_renderParams.offset = m_camera.m_pos;
+
 		m_renderer.BeginDraw();
 		m_entityManager.ForEachEntityWithComponents<Transform, Renderable>([this](Entity& ent, Transform& trans, Renderable& rend) {
 			Physics* phys = nullptr;
+			ShipControls* contr = nullptr;
 			if (m_entityManager.HasComponent<Physics>(ent)) {
 				phys = &m_entityManager.GetComponent<Physics>(ent);
 			}
+			if (m_entityManager.HasComponent<ShipControls>(ent)) {
+				contr = &m_entityManager.GetComponent<ShipControls>(ent);
+			}
 
-			m_renderer.Draw(ent, trans, rend, phys);
+			m_renderer.Draw(Renderer::ComponentGroup(ent, trans, rend, phys, contr));
 		});
 		m_renderer.EndDraw();
 	}
@@ -334,7 +352,7 @@ static std::unique_ptr<tb::TBRenderer> InitUI()
 	tb::TBFontDescription fd;
 
 	fd.SetID(TBIDC("Geo"));
-	fd.SetSize(tb::g_tb_skin->GetDimensionConverter()->DpToPx(20));
+	fd.SetSize(tb::g_tb_skin->GetDimensionConverter()->DpToPx(19));
 	tb::g_font_manager->SetDefaultFontDescription(fd);
 
 	// Create the font now.

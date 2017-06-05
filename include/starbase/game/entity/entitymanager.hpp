@@ -11,6 +11,7 @@
 
 #include <boost/signals2.hpp>
 
+#include <starbase/starbase.hpp>
 #include <starbase/game/logging.hpp>
 
 #include "entity.hpp"

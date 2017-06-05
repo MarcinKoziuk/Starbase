@@ -8,6 +8,7 @@
 #include <glm/mat4x4.hpp>
 
 #include <starbase/starbase.hpp>
+#include <starbase/game/id.hpp>
 #include <starbase/game/fs/ifilesystem.hpp>
 #include <starbase/game/resource/iresource.hpp>
 #include <starbase/game/resource/resource_ptr.hpp>
@@ -30,6 +31,9 @@ public:
 		std::vector<glm::vec2> points;
 		Style style;
 		bool closed;
+		id_t group;
+
+		Path() : group(0L) {}
 
         std::size_t CalculateSize() const
 		{
@@ -42,7 +46,7 @@ private:
 
 	static std::shared_ptr<const Model> placeholder;
 
-	void AddShape(const NSVGshape* shape, const glm::mat4& transform);
+	void AddShape(const NSVGshape* shape, const glm::mat4& transform, id_t group);
 
 public:
     virtual ~Model() {}
