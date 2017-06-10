@@ -18,11 +18,6 @@ enum Severity {
     fatal
 };
 
-/*
- * Prevents unused variable warning, while keeping both enum and string
- * definitions together.
- */
-#ifdef STARBASE_LOGGING_IMPL
 static const char* SEVERITY_TEXT_REPR[] = {
     "TRACE",
     "DEBUG",
@@ -33,7 +28,6 @@ static const char* SEVERITY_TEXT_REPR[] = {
     "CRITICAL",
     "FATAL"
 };
-#endif
 
 class SimpleLogStream {
 private:

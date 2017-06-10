@@ -1,6 +1,6 @@
 #pragma once
 
-#include "template/tcomponent_list.hpp"
+#include "template/component_list.hpp"
 
 #include <starbase/game/component/transform.hpp>
 #include <starbase/game/component/physics.hpp>

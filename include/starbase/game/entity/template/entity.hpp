@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <bitset>
 
+#include "detail/tmp.hpp"
+
 namespace Starbase {
 
 typedef std::uint64_t entity_id;
@@ -45,63 +47,34 @@ private:
 	TEntityManager<CL>* entityManager;
 
 	template<typename C>
-	void SetBit(component_bitset& bitset, bool val)
-	{
-		bitset[CL::template indexOf<C>()] = val;
-	}
+	void SetBit(component_bitset& bitset, bool val);
 
 	template<typename C>
-	void SetBit(bool val)
-	{
-		SetBit<C>(bitset, val);
-	}
+	void SetBit(bool val);
 
 public:
 	template<typename C>
-	static bool HasComponent(const component_bitset& bitset)
-	{
-		return bitset[CL::template indexOf<C>()];
-	}
+	static bool HasComponent(const component_bitset& bitset);
 
 	template<typename ...Cs>
-	static bool HasComponents(const component_bitset& bitset)
-	{
-		return TMP::And(HasComponent<Cs>(bitset)...);
-	}
+	static bool HasComponents(const component_bitset& bitset);
 
 	template<typename C>
-	bool HasComponent() const
-	{
-		return HasComponent<C>(bitset);
-	}
+	bool HasComponent() const;
 
 	template<typename ...Cs>
-	bool HasComponents() const
-	{
-		return HasComponents<Cs>();
-	}
+	bool HasComponents() const;
 
 	template<typename C>
-	C& GetComponent() const
-	{
-		return entityManager->GetComponent<C>(*this);
-	}
+	C& GetComponent() const;
 
 	template<typename C>
-	C* GetComponentOrNull() const
-	{
-		return HasComponent<C>() ? &GetComponent<C>() : nullptr;
-	}
+	C* GetComponentOrNull() const;
 };
 
 template<typename CL>
-static bool operator==(const TEntity<CL>& a, const TEntity<CL>& b)
-{
-	return a.id == b.id
-		&& a.bitset == b.bitset
-		&& a.alive == b.alive
-		&& a.needsToDie == b.needsToDie
-		&& a.isnew == b.isnew;
-}
+static bool operator==(const TEntity<CL>& a, const TEntity<CL>& b);
 
 } // namespace Starbase
+
+#include "detail/entity.inl"

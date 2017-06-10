@@ -18,7 +18,6 @@
 #include <starbase/game/resource/text.hpp>
 #include <starbase/game/resource/body.hpp>
 #include <starbase/game/entity/entity.hpp>
-#include <starbase/game/entity/entitymanager.hpp>
 #include <starbase/game/component/physics.hpp>
 #include <starbase/game/component/transform.hpp>
 #include <starbase/game/component/shipcontrols.hpp>
@@ -70,39 +69,39 @@ public:
 		m_renderer.Init();
 
 		m_entityManager.entityAdded.connect([this](const Entity& ent) {
-			if (m_entityManager.HasComponent<Renderable>(ent)) {
-				m_renderer.RenderableAdded(m_entityManager.GetComponent<Renderable>(ent));
+			if (ent.HasComponent<Renderable>()) {
+				m_renderer.RenderableAdded(ent.GetComponent<Renderable>());
 			}
-			if (m_entityManager.HasComponents<Transform, Physics>(ent)) {
-				m_renderer.PhysicsAdded(m_entityManager.GetComponent<Physics>(ent));
-				m_cpPhysics.PhysicsAdded(ent, m_entityManager.GetComponent<Transform>(ent), m_entityManager.GetComponent<Physics>(ent));
+			if (ent.HasComponents<Transform, Physics>()) {
+				m_renderer.PhysicsAdded(ent.GetComponent<Physics>());
+				m_cpPhysics.PhysicsAdded(ent, ent.GetComponent<Transform>(), ent.GetComponent<Physics>());
 			}
 		});
 		m_entityManager.entityWillBeRemoved.connect([this](const Entity& ent) {
-			if (m_entityManager.HasComponent<Renderable>(ent)) {
-				m_renderer.RenderableRemoved(m_entityManager.GetComponent<Renderable>(ent));
+			if (ent.HasComponent<Renderable>()) {
+				m_renderer.RenderableRemoved(ent.GetComponent<Renderable>());
 			}
-			if (m_entityManager.HasComponents<Transform, Physics>(ent)) {
-				m_renderer.PhysicsRemoved(m_entityManager.GetComponent<Physics>(ent));
-				m_cpPhysics.PhysicsRemoved(ent, m_entityManager.GetComponent<Transform>(ent), m_entityManager.GetComponent<Physics>(ent));
+			if (ent.HasComponents<Transform, Physics>()) {
+				m_renderer.PhysicsRemoved(ent.GetComponent<Physics>());
+				m_cpPhysics.PhysicsRemoved(ent, ent.GetComponent<Transform>(), ent.GetComponent<Physics>());
 			}
 		});
 		m_entityManager.componentAdded.connect([this](const Entity& ent, Entity::component_bitset oldComponents) {
-			if (m_entityManager.HasComponent<Renderable>(ent) && !Entity::HasComponent<Renderable>(oldComponents)) {
+			if (ent.HasComponent<Renderable>() && !Entity::HasComponent<Renderable>(oldComponents)) {
 				m_renderer.RenderableAdded(m_entityManager.GetComponent<Renderable>(ent));
 			}
-			if (m_entityManager.HasComponents<Transform, Physics>(ent) && !m_entityManager.HasComponents<Transform, Physics>(ent)) {
+			if (ent.HasComponents<Transform, Physics>() && !ent.HasComponents<Transform, Physics>()) {
 				m_renderer.PhysicsAdded(m_entityManager.GetComponent<Physics>(ent));
-				m_cpPhysics.PhysicsAdded(ent, m_entityManager.GetComponent<Transform>(ent), m_entityManager.GetComponent<Physics>(ent));
+				m_cpPhysics.PhysicsAdded(ent, ent.GetComponent<Transform>(), ent.GetComponent<Physics>());
 			}
 		});
 		m_entityManager.componentWillBeRemoved.connect([this](const Entity& ent, Entity::component_bitset newComponents) {
-			if (m_entityManager.HasComponent<Renderable>(ent) && !Entity::HasComponent<Renderable>(newComponents)) {
-				m_renderer.RenderableRemoved(m_entityManager.GetComponent<Renderable>(ent));
+			if (ent.HasComponent<Renderable>() && !Entity::HasComponent<Renderable>(newComponents)) {
+				m_renderer.RenderableRemoved(ent.GetComponent<Renderable>());
 			}
-			if (m_entityManager.HasComponents<Transform, Physics>(ent) && !m_entityManager.HasComponents<Transform, Physics>(ent)) {
-				m_renderer.PhysicsRemoved(m_entityManager.GetComponent<Physics>(ent));
-				m_cpPhysics.PhysicsRemoved(ent, m_entityManager.GetComponent<Transform>(ent), m_entityManager.GetComponent<Physics>(ent));
+			if (ent.HasComponents<Transform, Physics>() && !ent.HasComponents<Transform, Physics>()) {
+				m_renderer.PhysicsRemoved(ent.GetComponent<Physics>());
+				m_cpPhysics.PhysicsRemoved(ent, ent.GetComponent<Transform>(), ent.GetComponent<Physics>());
 			}
 		});
 
@@ -121,8 +120,8 @@ public:
 	bool HandleSDLEvent(SDL_Event event)
 	{
 		Entity& entity = m_entityManager.GetEntity(testShipId);
-		Transform& transf = m_entityManager.GetComponent<Transform>(entity);
-		ShipControls& scontrols = m_entityManager.GetComponent<ShipControls>(entity);
+		Transform& transf = entity.GetComponent<Transform>();
+		ShipControls& scontrols = entity.GetComponent<ShipControls>();
 		RenderParams& renderParams = m_renderer.m_renderParams;
 
 		switch (event.type) {

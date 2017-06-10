@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <ctime>
 
-#define STARBASE_LOGGING_IMPL
 #include <starbase/game/logging.hpp>
 
 namespace Starbase {

@@ -5,8 +5,7 @@
 #include <starbase/game/fs/ifilesystem.hpp>
 
 #include <starbase/game/resource/resourceloader.hpp>
-
-#include <starbase/game/entity/entitymanager.hpp>
+#include <starbase/game/entity/entity.hpp>
 
 #include <starbase/game/system/physics_system.hpp>
 #include <starbase/game/system/shipcontrols_system.hpp>

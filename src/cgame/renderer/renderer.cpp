@@ -178,7 +178,7 @@ bool Renderer::Init()
 	if (!m_entityRenderer.Init())
 		return false;
 
-    if (!InitFramebuffer(m_fbMulti, 4))
+    if (!InitFramebuffer(m_fbMulti, 0))
 		return false;
 
 	if (!InitFramebuffer(m_fbBlurHoriz, 0))

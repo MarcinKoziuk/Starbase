@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.7)
+cmake_minimum_required(VERSION 3.1)
 project(STARBASE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -48,6 +48,8 @@ file(GLOB_RECURSE EXTLIBS_H
 file(GLOB_RECURSE EXTLIBS_GAME_H
 	"extlibs/physfs/include/*.hpp"
 	"extlibs/nanosvg/nanosvg.h"
+	"extlibs/EntityPlus/entityplus/*.h"
+	"extlibs/EntityPlus/entityplus/*.impl"
 )
 file(GLOB_RECURSE EXTLIBS_GAME_SRC
 	"extlibs/physfs/src/*.cpp"
@@ -114,9 +116,29 @@ endforeach()
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3 /MP /fp:fast")
 	#add_definitions(/utf-8 /wd4828 /EHsc) ???
-	add_definitions(/wd4996)
+	add_definitions(/wd4996 /wd4503)
 else()
     set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -Wstrict-aliasing -pedantic -ffast-math -ggdb3")
+endif()
+
+# --- Precompiled headers ---
+if (MSVC AND FALSE)
+	set(pch_file "${PROJECT_SOURCE_DIR}/src/game/entity/entity.cpp")
+
+    foreach(src_file ${STARBASE_GAME_SRC})
+		get_source_file_property(language ${src_file} LANGUAGE)
+		if (("${language}" STREQUAL "CXX") AND (NOT "${src_file}" STREQUAL "${pch_file}"))
+			message("setting for ${src_file}")
+			set_source_files_properties(${src_file} PROPERTIES COMPILE_FLAGS "/Yustarbase/game/entity/entity.hpp /FIstarbase/game/entity/entity.hpp")
+		endif()
+    endforeach()
+
+	set_source_files_properties(${pch_file} PROPERTIES COMPILE_FLAGS "/Ycstarbase/game/entity/entity.hpp")
+
+	target_sources(${STARBASE_CGAME_LIBRARY} PRIVATE ${pch_file})
+	target_sources(${STARBASE_SUPPORT_LIBRARY} PRIVATE ${pch_file})
+	target_sources(${STARBASE_CLIENT_EXECUTABLE} PRIVATE ${pch_file})
+	target_sources(${STARBASE_SERVER_EXECUTABLE} PRIVATE ${pch_file})
 endif()
 
 if(STARBASE_STATIC_DEPENDENCIES)
@@ -149,6 +171,7 @@ find_package(TurboBadger REQUIRED)
 include_directories("include")
 include_directories("extlibs/physfs/include")
 include_directories("extlibs/nanosvg")
+include_directories("extlibs/EntityPlus")
 include_directories("extlibs")
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 include_directories(SYSTEM ${OPENGL_INCLUDE_DIR})

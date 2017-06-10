@@ -1,7 +1,7 @@
 #include <cmath>
 
 #include <starbase/game/logging.hpp>
-
+#include <starbase/game/entity/entity.hpp>
 #include <starbase/game/component/transform.hpp>
 
 #include <starbase/game/system/shipcontrols_system.hpp>
@@ -20,20 +20,20 @@ cpBodyApplyTorque(cpBody *body, cpFloat torque)
 
 void ShipControlsSystem::SpawnBullet(const glm::vec2& pos, const glm::vec2& vel)
 {
-	std::tuple<Entity&, Transform&> bullet = m_em.CreateEntity<Transform>();
+    std::tuple<Entity&, Transform&> bullet = m_em.CreateEntity<Transform>();
 
-	Entity& entity = std::get<0>(bullet);
-	Transform& transf = std::get<1>(bullet);
-	transf.pos = pos;
-	//transf.rot = rot;
-	transf.scale = glm::vec2(10.f, 10.f);
-	transf.vel = vel;
+    Entity& entity = std::get<0>(bullet);
+    Transform& transf = std::get<1>(bullet);
+    transf.pos = pos;
+    //transf.rot = rot;
+    transf.scale = glm::vec2(10.f, 10.f);
+    transf.vel = vel;
 
-	ResourcePtr<Model> modelPtr = m_resourceLoader.Load<Model>(ID("models/bullets/bullet-0"));
-	ResourcePtr<Body> bodyPtr = m_resourceLoader.Load<Body>(ID("models/bullets/bullet-0"));
+    ResourcePtr<Model> modelPtr = m_resourceLoader.Load<Model>(ID("models/bullets/bullet-0"));
+    ResourcePtr<Body> bodyPtr = m_resourceLoader.Load<Body>(ID("models/bullets/bullet-0"));
 
-	m_em.AddComponent<Renderable>(entity, modelPtr);
-	m_em.AddComponent<Physics>(entity, ID("default"), bodyPtr);
+    m_em.AddComponent<Renderable>(entity, Renderable{modelPtr});
+    m_em.AddComponent<Physics>(entity, ID("default"), bodyPtr);
 }
 
 static std::pair<glm::vec2, glm::vec2> GetBulletSpawnPosAndVel(Entity& ent, const Transform& transf, Physics& phys)

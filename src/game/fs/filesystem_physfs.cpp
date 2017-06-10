@@ -186,7 +186,15 @@ void FilesystemPhysFS::PathEnumCallback(void* self_, const char* root_, const ch
 	std::string root(root_);
 	std::string path = root.empty() ? filename : root + "/" + filename;
 	const std::uint32_t id = ID(path.c_str());
-	assert(self->m_idPaths.count(id) == 0 && "ID hash collision!");
+
+    /*if (!self->m_idPaths.count(id) == 0) {
+		LOG(error) << "ID hash collision!";
+        LOG(error) << path.c_str() << "; " << id;
+		LOG(error) << self->m_idPaths[id] << "; " << id;
+		assert(false && "ID hash collision!");
+	}
+
+    assert(self->m_idPaths.count(id) == 0 && "ID hash collision!");*/
 	self->m_idPaths[id] = path;
 
 	PHYSFS_enumerateFilesCallback(path.c_str(), &PathEnumCallback, self);

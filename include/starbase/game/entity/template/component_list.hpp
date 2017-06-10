@@ -5,8 +5,8 @@
 #include <unordered_map>
 #include <tuple>
 
-#include "tentity.hpp"
-#include "tmp.hpp"
+#include "entity.hpp"
+#include "detail/tmp.hpp"
 
 namespace Starbase {
 

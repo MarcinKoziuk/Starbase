@@ -1,6 +1,6 @@
 #pragma once
 
-#include "template/tentity.hpp"
+#include "template/entity.hpp"
 #include "component_list.hpp"
 
 namespace Starbase {
