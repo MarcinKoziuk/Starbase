@@ -167,6 +167,7 @@ void PhysicsSystem::Simulate(float dt)
 void PhysicsSystem::Update(Entity& ent, Transform& transf, Physics& phys)
 {
 	cpBody* body = phys.cp.body.get();
+	transf.prevPos = transf.pos;
 	transf.pos = to_vec2f(cpBodyGetPosition(body));
 	transf.rot = static_cast<float>(cpvtoangle(cpBodyGetRotation(body)));
 	transf.vel = to_vec2f(cpBodyGetVelocity(body));

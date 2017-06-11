@@ -68,8 +68,8 @@ static std::pair<glm::vec2, glm::vec2> GetBulletSpawnPosAndVel(Entity& ent, cons
 		pos += transf.pos;
 
 		glm::vec2 vel(
-			160.0 * std::cos(transf.rot - 1.5708),
-			160.0 * std::sin(transf.rot - 1.5708)
+			300.0 * std::cos(transf.rot - 1.5708),
+			300.0 * std::sin(transf.rot - 1.5708)
 		);
 
 		vel += transf.vel;
@@ -91,13 +91,13 @@ void ShipControlsSystem::Update(int step, Entity& ent, const Transform& transf, 
 	cpBodyApplyTorque(body, -ang * 4);
 
 	if (scontrols.actionFlags.rotateLeft && ang < maxAng) {
-		cpBodyApplyTorque(body, 10.0);
+		cpBodyApplyTorque(body, 20.0);
 	}
 	if (scontrols.actionFlags.rotateRight && ang > -maxAng) {
-		cpBodyApplyTorque(body, -10.0);
+		cpBodyApplyTorque(body, -20.0);
 	}
 	if (scontrols.actionFlags.thrustForward) {
-		cpBodyApplyForceAtLocalPoint(body, cpv(0, -80), cpv(0, 0));
+		cpBodyApplyForceAtLocalPoint(body, cpv(0, -140), cpv(0, 0));
 	}
 	if (scontrols.actionFlags.firePrimary) {
 		scontrols.actionFlags.firePrimary = false;

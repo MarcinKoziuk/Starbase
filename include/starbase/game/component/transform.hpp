@@ -6,6 +6,7 @@ namespace Starbase {
 
 struct Transform {
     glm::vec2 pos;
+	glm::vec2 prevPos;
     float rot;
 	glm::vec2 scale;
 	glm::vec2 vel;

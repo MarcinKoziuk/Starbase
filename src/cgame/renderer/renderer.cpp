@@ -255,9 +255,9 @@ void Renderer::EndDraw()
 	glDisableVertexAttribArray(m_fbA.attributes.texCoord);*/
 }
 
-void Renderer::Draw(const Renderer::ComponentGroup& cg)
+void Renderer::Draw(double alpha, const Renderer::ComponentGroup& cg)
 {
-	m_entityRenderer.Draw(cg);
+	m_entityRenderer.Draw(alpha, cg);
 }
 
 } // namespace Starbase

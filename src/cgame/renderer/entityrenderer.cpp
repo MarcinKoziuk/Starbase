@@ -232,7 +232,7 @@ void EntityRenderer::PhysicsRemoved(const Physics& phys)
 	}
 }
 
-static glm::mat4 CalcMatrix(const Transform& trans, const RenderParams& renderParams)
+static glm::mat4 CalcMatrix(double alpha, const Transform& trans, const RenderParams& renderParams)
 {
 	glm::mat4 model, view, projection;
 
@@ -242,7 +242,12 @@ static glm::mat4 CalcMatrix(const Transform& trans, const RenderParams& renderPa
 
 	projection = glm::ortho(-w / zoom, w / zoom, -h / zoom, h / zoom, -1.0f, 1.0f);;
 
-	model = glm::translate(model, glm::vec3(trans.pos, 0));
+	const glm::vec2 renderPos(
+		trans.pos.x * float(alpha) + trans.prevPos.x * float(1.0 - alpha),
+		trans.pos.y * float(alpha) + trans.prevPos.y * float(1.0 - alpha)
+	);
+
+	model = glm::translate(model, glm::vec3(renderPos, 0));
 	model = glm::translate(model, glm::vec3(-renderParams.offset, 0));
 	model = glm::rotate(model, trans.rot, glm::vec3(0.f, 0.f, 1.f));
 	model = glm::scale(model, glm::vec3(trans.scale.x, trans.scale.y, 1.f));
@@ -252,12 +257,12 @@ static glm::mat4 CalcMatrix(const Transform& trans, const RenderParams& renderPa
 	return projection * view * model;
 }
 
-void EntityRenderer::Draw(const EntityRenderer::ComponentGroup& cg)
+void EntityRenderer::Draw(double alpha, const EntityRenderer::ComponentGroup& cg)
 {
-	NormalDraw(cg);
+	NormalDraw(alpha, cg);
 
 	if (cg.phys != nullptr && m_renderParams.debug) {
-		DebugDraw(cg.ent, cg.trans, *cg.phys);
+		DebugDraw(alpha, cg.ent, cg.trans, *cg.phys);
 	}
 }
 
@@ -269,7 +274,7 @@ static bool IsPathVisible(const EntityRenderer::ComponentGroup& cg, const Model:
 	return true;
 }
 
-void EntityRenderer::NormalDraw(const EntityRenderer::ComponentGroup& cg)
+void EntityRenderer::NormalDraw(double alpha, const EntityRenderer::ComponentGroup& cg)
 {
 	const id_t modelId = cg.rend.model.Id();
 	const ModelGL& modelGL = m_modelsGL.at(modelId);
@@ -296,7 +301,7 @@ void EntityRenderer::NormalDraw(const EntityRenderer::ComponentGroup& cg)
 		if (!IsPathVisible(cg, path))
 			continue;
 
-		glm::mat4 mvp = CalcMatrix(cg.trans, m_renderParams);
+		glm::mat4 mvp = CalcMatrix(alpha, cg.trans, m_renderParams);
 
 		GLCALL(glUniformMatrix4fv(m_pathShader.uniforms.mvp, 1, GL_FALSE, glm::value_ptr(mvp)));
 
@@ -342,13 +347,13 @@ void EntityRenderer::NormalDraw(const EntityRenderer::ComponentGroup& cg)
 	}
 }
 
-void EntityRenderer::DebugDraw(const Entity& ent, const Transform& trans, const Physics& physics)
+void EntityRenderer::DebugDraw(double alpha, const Entity& ent, const Transform& trans, const Physics& physics)
 {
 	const id_t bodyId = physics.body.Id();
 	const BodyGL& bodyGL = m_bodiesGL.at(bodyId);
 	const Body& body = *physics.body.Get();
 
-	glm::mat4 mvp = CalcMatrix(trans, m_renderParams);
+	glm::mat4 mvp = CalcMatrix(alpha, trans, m_renderParams);
 
 	const std::size_t numShapes = body.GetPolygonShapes().size();
 	for (std::size_t i = 0; i < numShapes; i++) {

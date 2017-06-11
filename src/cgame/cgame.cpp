@@ -1,4 +1,5 @@
 ﻿#include <memory>
+#include <chrono>
 
 #include <SDL2/SDL.h>
 
@@ -59,35 +60,73 @@ bool CGame::Init()
 	return true;
 }
 
-void CGame::CMain()
+bool CGame::PollEvents()
 {
-	bool running = true;
+	SDL_Event event;
 
-	while (running) {
-		SDL_Event event;
-
-		while (SDL_PollEvent(&event) > 0) {
-			if (HandleSDLEvent(event)) {
-				continue;
-			}
-			if (m_mainWindow.HandleSDLEvent(event)) {
-				continue;
-			}
-
-			switch (event.type) {
-			case(SDL_QUIT):
-				running = false;
-				break;
-			}
+	while (SDL_PollEvent(&event) > 0) {
+		if (HandleSDLEvent(event)) {
+			continue;
+		}
+		if (m_mainWindow.HandleSDLEvent(event)) {
+			continue;
 		}
 
-		Update();
-		Render();
+		switch (event.type) {
+		case(SDL_QUIT):
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static double Time()
+{
+	auto time = std::chrono::high_resolution_clock::now();
+	auto epoch = time.time_since_epoch();
+	auto micros = std::chrono::duration_cast<std::chrono::microseconds>(epoch).count();
+	return (double)micros / 1000.0 / 1000.0;
+}
+
+void CGame::CMain()
+{
+	double t = 0.0;
+	const double dt = 1.0 / 60.0;
+
+	const double startTime = Time();
+	double currentTime = Time();
+	double accumulator = 0.0;
+
+	while (true) {
+		double newTime = Time();
+		double frameTime = newTime - currentTime;
+
+		if (frameTime > 0.25)
+			frameTime = 0.25;
+		currentTime = newTime;
+
+		accumulator += frameTime;
+
+		while (accumulator >= dt) {
+			Game::Update();
+			t += dt;
+			accumulator -= dt;
+		}
+
+		const double alpha = accumulator / dt;
+
+		Render(alpha);
 
 		m_mainWindow.Update();
 		m_mainWindow.Render();
 
 		m_display.Swap();
+
+		if (!PollEvents()) {
+			// Got SDL_QUIT
+			break;
+		}
 	}
 }
 
@@ -164,17 +203,17 @@ bool CGame::HandleSDLEvent(SDL_Event event)
 	return false;
 }
 
-void CGame::Render()
+void CGame::Render(double alpha)
 {
 	Entity& playerEntity = m_entityManager.GetEntity(m_playerEntityId);
 	m_camera.Follow(playerEntity.GetComponent<Transform>().pos);
 	m_renderer.m_renderParams.offset = m_camera.m_pos;
 
 	m_renderer.BeginDraw();
-	m_entityManager.ForEachEntityWithComponents<Transform, Renderable>([this](Entity& ent, Transform& trans, Renderable& rend) {
+	m_entityManager.ForEachEntityWithComponents<Transform, Renderable>([&](Entity& ent, Transform& trans, Renderable& rend) {
 		const Physics* phys = ent.GetComponentOrNull<Physics>();
 		const ShipControls* contr = ent.GetComponentOrNull<ShipControls>();
-		m_renderer.Draw(Renderer::ComponentGroup(ent, trans, rend, phys, contr));
+		m_renderer.Draw(alpha, Renderer::ComponentGroup(ent, trans, rend, phys, contr));
 	});
 	m_renderer.EndDraw();
 }

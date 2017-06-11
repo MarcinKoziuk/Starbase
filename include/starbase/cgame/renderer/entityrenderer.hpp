@@ -101,9 +101,9 @@ private:
 	std::unordered_map<id_t, BodyGL> m_bodiesGL;
 
 private:
-	void NormalDraw(const ComponentGroup& cg);
+	void NormalDraw(double alpha, const ComponentGroup& cg);
 
-	void DebugDraw(const Entity& ent, const Transform& trans, const Physics& physics);
+	void DebugDraw(double alpha, const Entity& ent, const Transform& trans, const Physics& physics);
 
 	void RenderableAdded(const Renderable& rend);
 
@@ -118,7 +118,7 @@ public:
 
 	bool Init();
 
-	void Draw(const ComponentGroup& cg);
+	void Draw(double alpha, const ComponentGroup& cg);
 };
 
 } // namespace Starbase

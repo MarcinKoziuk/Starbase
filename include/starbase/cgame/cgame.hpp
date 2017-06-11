@@ -34,7 +34,9 @@ public:
 
 	virtual bool Init();
 
-	void Render();
+	bool PollEvents();
+
+	void Render(double alpha);
 
 	void CMain();
 };

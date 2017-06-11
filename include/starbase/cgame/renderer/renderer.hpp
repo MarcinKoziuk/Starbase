@@ -77,7 +77,7 @@ public:
 
 	void BeginDraw();
 
-	void Draw(const ComponentGroup& cg);
+	void Draw(double alpha, const ComponentGroup& cg);
 
 	void EndDraw();
 };
