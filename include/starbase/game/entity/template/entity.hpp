@@ -70,9 +70,15 @@ public:
 
 	template<typename C>
 	C* GetComponentOrNull() const;
+
+	template<typename C, typename... Args>
+	C& AddComponent(Args&&... args);
+
+	template<typename C>
+	void RemoveComponent();
 };
 
-template<typename CL>
+template<typename CL, typename EL>
 static bool operator==(const TEntity<CL>& a, const TEntity<CL>& b);
 
 } // namespace Starbase

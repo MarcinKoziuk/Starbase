@@ -5,12 +5,13 @@
 #include <unordered_map>
 #include <tuple>
 
-#include <boost/signals2.hpp>
+#include <wink/signal.hpp>
 
 #include <starbase/starbase.hpp>
 
 #include "component_list.hpp"
 #include "entity.hpp"
+#include "eventmanager.hpp"
 
 namespace Starbase {
 
@@ -18,9 +19,22 @@ template<typename CL>
 class TEntityManager {
 public:
     using Entity = TEntity<CL>;
+
 	using component_bitset = typename TEntity<CL>::component_bitset;
+	/*
+	using component_signals = typename CL::template signal_type<Entity>;
+
+	template<typename C>
+	using component_signal = typename CL::template signal_type_one<Entity, C>;*/
+
+	friend Entity;
 
 private:
+	using entity_added = typename TEventManagerBase<CL>::entity_added;
+	using entity_removed = typename TEventManagerBase<CL>::entity_removed;
+	using component_added = typename TEventManagerBase<CL>::component_added;
+	using component_removed = typename TEventManagerBase<CL>::component_removed;
+
 	entity_id m_entityIdCounter;
 
 	// The list of entities that systems iterate over,
@@ -42,6 +56,8 @@ private:
 	typename CL::freelist_type m_componentsFree;
 	typename CL::index_type m_componentsIndex;
 
+	TEventManagerBase<CL>& m_eventManager;
+
 	entity_id GenerateId();
 
 	template<typename C>
@@ -55,11 +71,18 @@ private:
 
 	template<typename C>
 	std::unordered_map<entity_id, int>& GetComponentsIndex();
-
-	int IndexOfEntity(Entity* pEnt);
+	/*
+	template<typename C>
+    component_signal<C>& GetComponentAddedSignal();
 
 	template<typename C>
-	int IndexOfComponent(C* pCom);
+	component_signal<C>& GetComponentRemovedSignal();
+
+	template<typename C>
+	void EmitComponentAddedSignal(Entity&, C&);
+
+	template<typename C>
+	void EmitComponentRemovedSignal(Entity&, C&);*/
 
 	template<typename C>
 	C& GetComponentExistingImpl(entity_id id);
@@ -67,41 +90,46 @@ private:
 	template<typename C>
 	C& GetComponentNewImpl(entity_id id);
 
+	template<typename C>
+	C& GetComponent(const Entity& ent);
+
 	template<typename C, typename... Args>
-	C& AddComponentExistingImpl(entity_id id, Args&&... args);
+	C& AddComponentExistingImpl(Entity& entity, Args&&... args);
 
 	template<typename C, typename... Args>
-	C& AddComponentNewImpl(entity_id id, Args&&... args);
+	C& AddComponentNewImpl(Entity& entity, Args&&... args);
+	
+	template<typename C>
+	void RemoveComponentNewImpl(Entity& entity);
 
 	template<typename C>
-	C& AddComponentNewAndSetBitImpl(Entity& ent);
+	void RemoveComponentExistingImpl(Entity& entity);
 
-	template<typename C>
-	void RemoveComponentNewImpl(entity_id id);
+	void RemoveComponentsNew(Entity& ent);
 
-	template<typename C>
-	void RemoveComponentExistingImpl(entity_id id);
-
-	void RemoveComponentsNewIfBitIsSetImpl(Entity& ent);
-
-	void RemoveComponentsExistingIfBitIsSetImpl(Entity& ent);
+	void RemoveComponentsExisting(Entity& ent);
 
 	void RemoveEntityExistingImpl(Entity& ent);
 
 	void RemoveEntityNewImpl(Entity& ent);
 
-public:
-	boost::signals2::signal<void(Entity& entity)> entityAdded;
-	boost::signals2::signal<void(Entity& entity)> entityWillBeRemoved;
-	boost::signals2::signal<void(Entity& entity, component_bitset oldComponents)> componentAdded;
-	boost::signals2::signal<void(Entity& entity, component_bitset newComponents)> componentWillBeRemoved;
+	template<typename C, typename... Args>
+	C& AddComponent(Entity& ent, Args&&... args);
 
-	TEntityManager();
+	template<typename C>
+	void RemoveComponent(Entity& ent);
+
+public:
+	/*component_signals componentAdded2;
+	component_signals componentRemoved2;
+	wink::signal<std::function<void(Entity& entity)>> entityAdded;
+	wink::signal<std::function<void(Entity& entity)>> entityWillBeRemoved;*/
+	wink::signal<std::function<void(Entity& entity, component_bitset oldComponents)>> componentAdded;
+	wink::signal<std::function<void(Entity& entity, component_bitset newComponents)>> componentWillBeRemoved;
+
+	TEntityManager(TEventManagerBase<CL>& eventManager);
 
 	Entity& GetEntity(entity_id id);
-
-    template<typename C>
-	C& GetComponent(const Entity& ent);
 
 	template<typename F>
 	void ForEachEntity(F fun);
@@ -114,15 +142,32 @@ public:
 	template<typename ...Cs>
 	std::tuple<Entity&, Cs&...> CreateEntity();
 
+	template<typename ...Cs>
+	Entity& CreateEntity(Cs&&...);
+
 	void RemoveEntity(Entity& ent);
 
-	template<typename C, typename... Args>
-	C& AddComponent(Entity& ent, Args&&... args);
+	void Update();
+	/*
+	// Due to a MSVC compiler issue, these can not have a separate definition in entitymanager.inl (error C2244)
+	template<typename E, typename std::enable_if<!std::is_base_of<entity_event, E>::value, entity_event>::type* = nullptr, typename... Args>
+	void Connect(Args&&...)
+	{
+		assert(false);
+	}
 
-	template<typename C>
-	void RemoveComponent(Entity& ent);
+	template<typename E, typename std::enable_if<std::is_base_of<entity_added, E>::value, entity_added>::type* = nullptr, typename... Args>
+	void Connect(Args&&... args)
+	{
+		entityAdded.connect(std::forward<Args>(args)...);
+	}
 
-	void Refresh();
+	template<typename E, typename std::enable_if<std::is_base_of<entity_removed, E>::value, entity_removed>::type* = nullptr, typename... Args>
+	void Connect(Args&&... args)
+	{
+        entityWillBeRemoved.connect(std::forward<Args>(args)...);
+	}
+	*/
 };
 
 } // namespace Starbase

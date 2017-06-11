@@ -66,6 +66,20 @@ C* TENTITY_DECL::GetComponentOrNull() const
 	return HasComponent<C>() ? &GetComponent<C>() : nullptr;
 }
 
+TENTITY_TEMPLATE
+template<typename C, typename... Args>
+C& TENTITY_DECL::AddComponent(Args&&... args)
+{
+    return entityManager->template AddComponent<C>(*this, std::forward<Args>(args)...);
+}
+
+TENTITY_TEMPLATE
+template<typename C>
+void TENTITY_DECL::RemoveComponent()
+{
+    return entityManager->template RemoveComponent<C>(*this);
+}
+
 template<typename CL>
 static bool operator==(const TEntity<CL>& a, const TEntity<CL>& b)
 {

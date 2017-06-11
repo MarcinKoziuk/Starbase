@@ -20,6 +20,22 @@ cpBodyApplyTorque(cpBody *body, cpFloat torque)
 
 void ShipControlsSystem::SpawnBullet(const glm::vec2& pos, const glm::vec2& vel)
 {
+	ResourcePtr<Model> model = m_resourceLoader.Load<Model>(ID("models/bullets/bullet-0"));
+	ResourcePtr<Body> body = m_resourceLoader.Load<Body>(ID("models/bullets/bullet-0"));
+
+	Transform transf;
+	transf.pos = pos;
+	//transf.rot = rot;
+	transf.scale = glm::vec2(10.f, 10.f);
+	transf.vel = vel;
+
+    m_em.CreateEntity<Transform, Renderable, Physics>(
+        Transform(transf),
+		Renderable{model},
+		Physics{ID("default"), body}
+	);
+
+	/*
     std::tuple<Entity&, Transform&> bullet = m_em.CreateEntity<Transform>();
 
     Entity& entity = std::get<0>(bullet);
@@ -33,7 +49,7 @@ void ShipControlsSystem::SpawnBullet(const glm::vec2& pos, const glm::vec2& vel)
     ResourcePtr<Body> bodyPtr = m_resourceLoader.Load<Body>(ID("models/bullets/bullet-0"));
 
     m_em.AddComponent<Renderable>(entity, Renderable{modelPtr});
-    m_em.AddComponent<Physics>(entity, ID("default"), bodyPtr);
+    m_em.AddComponent<Physics>(entity, ID("default"), bodyPtr);*/
 }
 
 static std::pair<glm::vec2, glm::vec2> GetBulletSpawnPosAndVel(Entity& ent, const Transform& transf, Physics& phys)

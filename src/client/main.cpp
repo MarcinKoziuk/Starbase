@@ -18,6 +18,8 @@
 #include <starbase/game/resource/text.hpp>
 #include <starbase/game/resource/body.hpp>
 #include <starbase/game/entity/entity.hpp>
+#include <starbase/game/entity/entitymanager.hpp>
+#include <starbase/game/entity/eventmanager.hpp>
 #include <starbase/game/component/physics.hpp>
 #include <starbase/game/component/transform.hpp>
 #include <starbase/game/component/shipcontrols.hpp>
@@ -47,6 +49,7 @@ float Rand(float a, float b)
 
 class Scene {
 private:
+	EventManager m_eventManager;
 	EntityManager m_entityManager;
 	ResourceLoader m_resourceLoader;
 	Renderer m_renderer;
@@ -60,7 +63,8 @@ private:
 
 public:
 	Scene(Display& display, IFilesystem& fs)
-		: m_display(display)
+		: m_entityManager(m_eventManager)
+		, m_display(display)
 		, m_resourceLoader(fs)
 		, m_renderer(display, fs, m_resourceLoader)
 		, m_shipControlsSystem(m_entityManager, m_resourceLoader)
@@ -68,7 +72,13 @@ public:
 	{
 		m_renderer.Init();
 
-		m_entityManager.entityAdded.connect([this](const Entity& ent) {
+		TextEvent te("jappie");
+		m_eventManager.Connect<TextEvent>([&](const TextEvent& te) {
+			LOG(info) << "___________" + te.text + "____________";
+		});
+		m_eventManager.Emit<TextEvent>(te);
+
+		m_eventManager.Connect<EventManagerBase::entity_added>([&](const Entity& ent) {
 			if (ent.HasComponent<Renderable>()) {
 				m_renderer.RenderableAdded(ent.GetComponent<Renderable>());
 			}
@@ -77,7 +87,8 @@ public:
 				m_cpPhysics.PhysicsAdded(ent, ent.GetComponent<Transform>(), ent.GetComponent<Physics>());
 			}
 		});
-		m_entityManager.entityWillBeRemoved.connect([this](const Entity& ent) {
+
+		m_eventManager.Connect<EventManager::entity_removed>([&](const Entity& ent) {
 			if (ent.HasComponent<Renderable>()) {
 				m_renderer.RenderableRemoved(ent.GetComponent<Renderable>());
 			}
@@ -86,12 +97,13 @@ public:
 				m_cpPhysics.PhysicsRemoved(ent, ent.GetComponent<Transform>(), ent.GetComponent<Physics>());
 			}
 		});
+
 		m_entityManager.componentAdded.connect([this](const Entity& ent, Entity::component_bitset oldComponents) {
 			if (ent.HasComponent<Renderable>() && !Entity::HasComponent<Renderable>(oldComponents)) {
-				m_renderer.RenderableAdded(m_entityManager.GetComponent<Renderable>(ent));
+				m_renderer.RenderableAdded(ent.GetComponent<Renderable>());
 			}
 			if (ent.HasComponents<Transform, Physics>() && !ent.HasComponents<Transform, Physics>()) {
-				m_renderer.PhysicsAdded(m_entityManager.GetComponent<Physics>(ent));
+				m_renderer.PhysicsAdded(ent.GetComponent<Physics>());
 				m_cpPhysics.PhysicsAdded(ent, ent.GetComponent<Transform>(), ent.GetComponent<Physics>());
 			}
 		});
@@ -109,10 +121,10 @@ public:
 		//AddTestShip(ID("models/ships/interceptor-0"), glm::vec2(80.f, 80.f), 0.f, 2.f);
 		//AddTestShip(ID("models/ships/linesan"), glm::vec2(2000.f, 0.f), 0.4f, 100.f);
 		testShipId = AddTestShip(ID("models/ships/fighter-1"), glm::vec2(-80.f, 0.f), 0.4f, 1.f);
-		m_entityManager.Refresh();
+		m_entityManager.Update();
 
 		Entity& testShip = m_entityManager.GetEntity(testShipId);
-		const Transform& testShipTransform = m_entityManager.GetComponent<Transform>(testShip);
+		const Transform& testShipTransform = testShip.GetComponent<Transform>();
 
 		m_camera = Camera(glm::vec2(400, 200));
 	}
@@ -187,15 +199,15 @@ public:
 		ResourcePtr<Model> modelPtr = m_resourceLoader.Load<Model>(id);
 		ResourcePtr<Body> bodyPtr = m_resourceLoader.Load<Body>(id);
 
-		(void) m_entityManager.AddComponent<Renderable>(entity, modelPtr);
-		(void) m_entityManager.AddComponent<Physics>(entity, ID("default"), bodyPtr);
+		entity.AddComponent<Renderable>(modelPtr);
+		entity.AddComponent<Physics>(ID("default"), bodyPtr);
 
 		return ret;
 	}
 
 	void Update()
 	{
-		m_entityManager.Refresh();
+		m_entityManager.Update();
 
 		m_cpPhysics.Simulate(1.f / 60.f);
 		m_entityManager.ForEachEntityWithComponents<Transform, Physics>([this](Entity& ent, Transform& trans, Physics& phys) {
@@ -210,7 +222,7 @@ public:
 	void Render()
 	{
 		Entity& testShip = m_entityManager.GetEntity(testShipId);
-		const Transform& testShipTransform = m_entityManager.GetComponent<Transform>(testShip);
+		const Transform& testShipTransform = testShip.GetComponent<Transform>();
 
 		m_camera.Follow(testShipTransform.pos);
 		m_renderer.m_renderParams.offset = m_camera.m_pos;

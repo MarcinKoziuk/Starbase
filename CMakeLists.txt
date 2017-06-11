@@ -50,6 +50,8 @@ file(GLOB_RECURSE EXTLIBS_GAME_H
 	"extlibs/nanosvg/nanosvg.h"
 	"extlibs/EntityPlus/entityplus/*.h"
 	"extlibs/EntityPlus/entityplus/*.impl"
+	"extlibs/Wink-Signals/wink/*.h"
+	"extlibs/Wink-Signals/wink/*.cpp"
 )
 file(GLOB_RECURSE EXTLIBS_GAME_SRC
 	"extlibs/physfs/src/*.cpp"
@@ -118,7 +120,7 @@ if(MSVC)
 	#add_definitions(/utf-8 /wd4828 /EHsc) ???
 	add_definitions(/wd4996 /wd4503)
 else()
-    set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -Wstrict-aliasing -pedantic -ffast-math -ggdb3")
+    set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -Wstrict-aliasing -pedantic -ffast-math")
 endif()
 
 # --- Precompiled headers ---
@@ -150,13 +152,13 @@ add_definitions(-DSTARBASE_MAJOR_VERSION="${STARBASE_MAJOR_VERSION}")
 add_definitions(-DSTARBASE_MINOR_VERSION="${STARBASE_MINOR_VERSION}")
 add_definitions(-DSTARBASE_COMPILETIME_SOURCE_PATH="${CMAKE_SOURCE_DIR}")
 add_definitions(-DGLM_FORCE_RADIANS=1)
-add_definitions(-DBOOST_ALL_NO_LIB=1)
+#add_definitions(-DBOOST_ALL_NO_LIB=1)
 
 add_definitions(-DSTARBASE_CLIENT=1)
 
 # --- Dependencies ---
 find_package(Threads REQUIRED)
-find_package(Boost COMPONENTS system REQUIRED)
+#find_package(Boost COMPONENTS system REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(SDL2 REQUIRED)
@@ -172,8 +174,9 @@ include_directories("include")
 include_directories("extlibs/physfs/include")
 include_directories("extlibs/nanosvg")
 include_directories("extlibs/EntityPlus")
+include_directories(SYSTEM "extlibs/Wink-Signals")
 include_directories("extlibs")
-include_directories(SYSTEM ${Boost_INCLUDE_DIR})
+#include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 include_directories(SYSTEM ${OPENGL_INCLUDE_DIR})
 include_directories(SYSTEM ${GLEW_INCLUDE_DIR})
 include_directories(SYSTEM ${SDL2_INCLUDE_DIR})
@@ -186,7 +189,7 @@ include_directories(SYSTEM ${TURBOBADGER_INCLUDE_DIR} ${TURBOBADGER_INCLUDE_DIR}
 # --- Linking ---
 target_link_libraries(${STARBASE_GAME_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
-    ${Boost_LIBRARIES}
+#   ${Boost_LIBRARIES}
     ${PHYSFS_LIBRARY}
     ${CHIPMUNK_LIBRARY}
     ${STARBASE_SUPPORT_LIBRARY}

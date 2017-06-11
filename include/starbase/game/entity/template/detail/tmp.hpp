@@ -41,51 +41,6 @@ bool And(B b, O... o) {
 	return b && And(o...);
 }
 
-/* -----------------
- * GetTupleContainer
- * ----------------- */
-
-namespace detail {
-	template<class T1, class T2>
-	struct SameType {
-		static const bool value = false;
-	};
-
-	template<class T>
-	struct SameType<T, T> {
-		static const bool value = true;
-	};
-
-	template<int N, typename T, typename Tuple>
-	struct ContainerOfType : SameType<T, typename std::tuple_element<N, Tuple>::type::value_type>
-	{};
-
-	template<int N, class C, class Tuple, bool Match = false> // this =false is only for clarity
-	struct MatchingField {
-		static C& get(Tuple& tp)
-		{
-			// The "non-matching" version
-			return MatchingField<N + 1, C, Tuple,
-				ContainerOfType<N + 1, typename C::value_type, Tuple>::value>::get(tp);
-		}
-	};
-
-	template<int N, class C, class Tuple>
-	struct MatchingField<N, C, Tuple, true> {
-		static C& get(Tuple& tp)
-		{
-			return std::get<N>(tp);
-		}
-	};
-}
-
-template<typename C, typename Tuple>
-C& GetTupleContainer(Tuple& tuple)
-{
-	return detail::MatchingField<0, C, Tuple,
-		detail::ContainerOfType<0, typename C::value_type, Tuple>::value>::get(tuple);
-}
-
 /* -------
  * ForEach
  * ------- */

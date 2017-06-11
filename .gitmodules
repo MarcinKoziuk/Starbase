@@ -1,0 +1,3 @@
+[submodule "extlibs/Wink-Signals"]
+	path = extlibs/Wink-Signals
+	url = https://github.com/miguelmartin75/Wink-Signals

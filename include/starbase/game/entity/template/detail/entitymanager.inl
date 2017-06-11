@@ -27,47 +27,56 @@ TENTITYMANAGER_TEMPLATE
 template<typename C>
 std::vector<C>& TENTITYMANAGER_DECL::GetComponents()
 {
-	return TMP::GetTupleContainer<std::vector<C>, typename CL::vector_type>(m_components);
+	return std::get<std::vector<C>>(m_components);
 }
 
 TENTITYMANAGER_TEMPLATE
 template<typename C>
 std::map<entity_id, C>& TENTITYMANAGER_DECL::GetComponentsNew()
 {
-	return TMP::GetTupleContainer<std::map<entity_id, C>, typename CL::map_type>(m_componentsNew);
+	return std::get<std::map<entity_id, C>>(m_componentsNew);
 }
 
 TENTITYMANAGER_TEMPLATE
 template<typename C>
 std::vector<C*>& TENTITYMANAGER_DECL::GetComponentsFree()
 {
-	return TMP::GetTupleContainer<std::vector<C*>, typename CL::freelist_type>(m_componentsFree);
+	return std::get<std::vector<C*>>(m_componentsFree);
+}
+/*
+TENTITYMANAGER_TEMPLATE
+template<typename C>
+auto TENTITYMANAGER_DECL::GetComponentAddedSignal() -> component_signal<C>&
+{
+	return std::get<component_signal<C>>(componentAdded2);
 }
 
+TENTITYMANAGER_TEMPLATE
+template<typename C>
+auto TENTITYMANAGER_DECL::GetComponentRemovedSignal() -> component_signal<C>&
+{
+	return std::get<component_signal<C>>(componentRemoved2);
+}
+
+TENTITYMANAGER_TEMPLATE
+template<typename C>
+void TENTITYMANAGER_DECL::EmitComponentAddedSignal(Entity& ent, C& comp)
+{
+	GetComponentAddedSignal<C>().emit(ent, comp);
+}
+
+TENTITYMANAGER_TEMPLATE
+template<typename C>
+void TENTITYMANAGER_DECL::EmitComponentRemovedSignal(Entity& ent, C& comp)
+{
+	GetComponentRemovedSignal<C>().emit(ent, comp);
+}
+*/
 TENTITYMANAGER_TEMPLATE
 template<typename C>
 std::unordered_map<entity_id, int>& TENTITYMANAGER_DECL::GetComponentsIndex()
 {
 	return m_componentsIndex[CL::template indexOf<C>()];
-}
-
-TENTITYMANAGER_TEMPLATE
-int TENTITYMANAGER_DECL::IndexOfEntity(Entity* pEnt)
-{
-	const std::size_t indexOfEntity = pEnt - &m_entities.front();
-	assert(indexOfEntity < std::numeric_limits<int>::max());
-	return (int)indexOfEntity;
-}
-
-TENTITYMANAGER_TEMPLATE
-template<typename C>
-int TENTITYMANAGER_DECL::IndexOfComponent(C* pCom)
-{
-	std::vector<C>& components = GetComponents<C>();
-	const std::size_t indexOfComponent = pCom - &components.front();
-
-	assert(indexOfComponent < std::numeric_limits<int>::max());
-	return (int)indexOfComponent;
 }
 
 TENTITYMANAGER_TEMPLATE
@@ -93,84 +102,85 @@ C& TENTITYMANAGER_DECL::GetComponentNewImpl(entity_id id)
 
 TENTITYMANAGER_TEMPLATE
 template<typename C, typename... Args>
-C& TENTITYMANAGER_DECL::AddComponentExistingImpl(entity_id id, Args&&... args)
+C& TENTITYMANAGER_DECL::AddComponentExistingImpl(Entity& ent, Args&&... args)
 {
 	auto& components = GetComponents<C>();
 	auto& componentsIndex = GetComponentsIndex<C>();
 
 	components.emplace_back(C(std::forward<Args>(args)...));
-	C* pcom = &components.back();
 
-	componentsIndex[id] = IndexOfComponent<C>(pcom);
-	return *pcom;
+	C& com = components.back();
+	componentsIndex[ent.id] = static_cast<int>(components.size() - 1);
+
+	ent.template SetBit<C>(true);
+
+	return com;
 }
 
 TENTITYMANAGER_TEMPLATE
 template<typename C, typename... Args>
-C& TENTITYMANAGER_DECL::AddComponentNewImpl(entity_id id, Args&&... args)
+C& TENTITYMANAGER_DECL::AddComponentNewImpl(Entity& ent, Args&&... args)
 {
 	auto& componentsNew = GetComponentsNew<C>();
-	C& com = componentsNew.emplace(id, C(std::forward<Args>(args)...)).first->second;
+	C& com = componentsNew.emplace(ent.id, C(std::forward<Args>(args)...)).first->second;
+
+	ent.template SetBit<C>(true);
 	return com;
 }
 
 TENTITYMANAGER_TEMPLATE
 template<typename C>
-C& TENTITYMANAGER_DECL::AddComponentNewAndSetBitImpl(Entity& ent)
-{
-	ent.template SetBit<C>(true);
-	return AddComponentNewImpl<C>(ent.id);
-}
-
-TENTITYMANAGER_TEMPLATE
-template<typename C>
-void TENTITYMANAGER_DECL::RemoveComponentNewImpl(entity_id id)
+void TENTITYMANAGER_DECL::RemoveComponentNewImpl(Entity& ent)
 {
 	auto& componentsNew = GetComponentsNew<C>();
-	componentsNew.erase(id);
+	componentsNew.erase(ent.id);
+
+	ent.template SetBit<C>(false);
 }
 
 TENTITYMANAGER_TEMPLATE
 template<typename C>
-void TENTITYMANAGER_DECL::RemoveComponentExistingImpl(entity_id id)
+void TENTITYMANAGER_DECL::RemoveComponentExistingImpl(Entity& ent)
 {
 	auto& components = GetComponents<C>();
 	auto& componentsFree = GetComponentsFree<C>();
 	auto& componentsIndex = GetComponentsIndex<C>();
 
-	C& com = components[componentsIndex[id]];
+	C& com = components[componentsIndex[ent.id]];
 	com = C{}; // clear component to force destructor to be called
 
 	componentsFree.push_back(&com);
-	componentsIndex.erase(id);
+    componentsIndex.erase(ent.id);
+
+	ent.template SetBit<C>(false);
 }
 
 TENTITYMANAGER_TEMPLATE
-void TENTITYMANAGER_DECL::RemoveComponentsNewIfBitIsSetImpl(Entity& ent)
+void TENTITYMANAGER_DECL::RemoveComponentsNew(Entity& ent)
 {
 	TMP::ForEach<typename CL::types>([&](auto type_holder) {
 		(void)type_holder;
 		using C = typename decltype(type_holder)::type;
 		if (ent.template HasComponent<C>())
-			RemoveComponentNewImpl<C>(ent.id);
+            this->RemoveComponentNewImpl<C>(ent);
 	});
 }
 
 TENTITYMANAGER_TEMPLATE
-void TENTITYMANAGER_DECL::RemoveComponentsExistingIfBitIsSetImpl(Entity& ent)
+void TENTITYMANAGER_DECL::RemoveComponentsExisting(Entity& ent)
 {
 	TMP::ForEach<typename CL::types>([&](auto type_holder) {
 		(void)type_holder;
 		using C = typename decltype(type_holder)::type;
 		if (ent.template HasComponent<C>())
-			RemoveComponentExistingImpl<C>(ent.id);
+            this->RemoveComponentExistingImpl<C>(ent);
 	});
 }
 
 TENTITYMANAGER_TEMPLATE
 void TENTITYMANAGER_DECL::RemoveEntityExistingImpl(Entity& ent)
 {
-	RemoveComponentsExistingIfBitIsSetImpl(ent);
+	RemoveComponentsExisting(ent);
 
 	m_entitiesIndex.erase(ent.id);
 
@@ -183,14 +193,15 @@ void TENTITYMANAGER_DECL::RemoveEntityExistingImpl(Entity& ent)
 TENTITYMANAGER_TEMPLATE
 void TENTITYMANAGER_DECL::RemoveEntityNewImpl(Entity& ent)
 {
-	RemoveComponentsNewIfBitIsSetImpl(ent);
+	RemoveComponentsNew(ent);
 
 	m_entitiesNew.erase(ent.id);
 }
 
 TENTITYMANAGER_TEMPLATE
-TENTITYMANAGER_DECL::TEntityManager()
+TENTITYMANAGER_DECL::TEntityManager(TEventManagerBase<CL>& eventManager)
 	: m_entityIdCounter(0)
+	, m_eventManager(eventManager)
 {
 	static_assert(CL::count <= MAX_COMPONENTS, "MAX_COMPONENTS size is unsufficient!");
 	m_componentsIndex.resize(CL::count);
@@ -254,7 +265,20 @@ template<typename ...Cs>
 auto TENTITYMANAGER_DECL::CreateEntity() -> std::tuple<Entity&, Cs&...>
 {
 	Entity& ent = CreateEntity();
-	return std::forward_as_tuple(ent, AddComponentNewAndSetBitImpl<Cs>(ent)...);
+    return std::forward_as_tuple(ent, AddComponentNewImpl<Cs>(ent)...);
+}
+
+TENTITYMANAGER_TEMPLATE
+template<typename ...Cs>
+auto TENTITYMANAGER_DECL::CreateEntity(Cs&&... cs) -> Entity&
+{
+	Entity& ent = CreateEntity();
+
+	std::initializer_list<int> _ = {
+        ((void)AddComponentNewImpl<std::decay_t<Cs>>(ent, std::forward<Cs>(cs)), 0)...
+	};
+
+	return ent;
 }
 
 TENTITYMANAGER_TEMPLATE
@@ -262,7 +286,7 @@ void TENTITYMANAGER_DECL::RemoveEntity(Entity& ent)
 {
 	if (SB_LIKELY(!ent.isnew)) {
 		// send signal (not necessary for new ones, because added signal had not been sent)
-		entityWillBeRemoved(ent);
+        m_eventManager.template Emit<entity_removed>(ent);
 
 		RemoveEntityExistingImpl(ent);
 	}
@@ -276,26 +300,24 @@ TENTITYMANAGER_TEMPLATE
 template<typename C, typename... Args>
 C& TENTITYMANAGER_DECL::AddComponent(Entity& ent, Args&&... args)
 {
-	C* pCom = nullptr;
+	C* comPtr = nullptr;
 
 	if (SB_LIKELY(!ent.isnew)) {
-		pCom = &AddComponentExistingImpl<C, Args...>(ent.id, std::forward<Args>(args)...);
-
 		const auto oldComponents = ent.bitset;
-		ent.template SetBit<C>(true);
+
+		comPtr = &AddComponentExistingImpl<C, Args...>(ent, std::forward<Args>(args)...);
 
 		// send signal
-		componentAdded(ent, oldComponents);
+		componentAdded.emit(ent, oldComponents);
+        m_eventManager.template Emit<C, component_added>(ent, *comPtr);
 	}
 	else {
-		//LOG(warning) << "Performance warning: components for new entities should be directly inserted on-construction: " << ent.id;
+		LOG(warning) << "Performance warning: components for new entities should be directly inserted on-construction: " << ent.id;
 
-		pCom = &AddComponentNewImpl<C, Args...>(ent.id, std::forward<Args>(args)...);
-
-		ent.template SetBit<C>(true);
+		comPtr = &AddComponentNewImpl<C, Args...>(ent, std::forward<Args>(args)...);
 	}
 
-	return *pCom;
+	return *comPtr;
 }
 
 TENTITYMANAGER_TEMPLATE
@@ -304,21 +326,21 @@ void TENTITYMANAGER_DECL::RemoveComponent(Entity& ent)
 {
 	if (SB_LIKELY(ent.template GetBit<C>())) {
 		if (SB_LIKELY(!ent.isnew)) {
+			C& comp = ent.template GetComponent<C>();
+
 			auto newComponents = ent.bitset;
 			Entity::template SetBit<C>(newComponents, false);
 
 			// send signal
-			componentWillBeRemoved(ent, newComponents);
+			componentWillBeRemoved.emit(ent, newComponents);
+            m_eventManager.template Emit<C, component_removed>(ent, comp);
 
 			RemoveComponentExistingImpl<C>(ent.id);
-			ent.bitset = newComponents;
 		}
 		else {
 			LOG(warning) << "Performance warning: components for new entities should not be removed in the same loop! " << ent.id;
 
 			RemoveComponentNewImpl<C>(ent.id);
-
-			ent.template SetBit<C>(false);
 		}
 	}
 	else {
@@ -327,43 +349,42 @@ void TENTITYMANAGER_DECL::RemoveComponent(Entity& ent)
 }
 
 TENTITYMANAGER_TEMPLATE
-void TENTITYMANAGER_DECL::Refresh()
+void TENTITYMANAGER_DECL::Update()
 {
 	while (!m_entitiesNew.empty()) {
 		// Make copy of the new entity and remove it
 		auto iter = m_entitiesNew.begin();
-		Entity ent = iter->second;
+		Entity tmpEnt = iter->second;
 		m_entitiesNew.erase(iter);
 
 		// Push it to the main vector
-		ent.isnew = false;
-		m_entities.emplace_back(std::move(ent));
+		tmpEnt.isnew = false;
+		m_entities.emplace_back(std::move(tmpEnt));
 
-		// Set its index in the index ;)
-		Entity* pEnt = &m_entities.back();
-		m_entitiesIndex[pEnt->id] = IndexOfEntity(pEnt);
+		// Set its index
+		Entity& ent = m_entities.back();
+		m_entitiesIndex[ent.id] = static_cast<int>(m_entities.size() - 1);
 
 		// Do the same for its belonging components
 		TMP::ForEach<typename CL::types>([&](auto type_holder) {
 			(void)type_holder;
 			using C = typename decltype(type_holder)::type;
 
-			auto& components = GetComponents<C>();
-			auto& componentsNew = GetComponentsNew<C>();
-			auto& componentsIndex = GetComponentsIndex<C>();
+            auto& components = this->GetComponents<C>();
+            auto& componentsNew = this->GetComponentsNew<C>();
+            auto& componentsIndex = this->GetComponentsIndex<C>();
 
 			if (ent.template HasComponent<C>()) {
 				C& com = componentsNew.at(ent.id);
+
 				components.emplace_back(std::move(com));
 				componentsNew.erase(ent.id);
-
-				C* pCom = &components.back();
-				componentsIndex[ent.id] = IndexOfComponent(pCom);
+				componentsIndex[ent.id] = static_cast<int>(components.size() - 1);
 			}
 		});
 
 		// Send signal
-		entityAdded(*pEnt);
+        m_eventManager.template Emit<entity_added>(ent);
 	}
 
 	for (Entity& ent : m_entities) {
