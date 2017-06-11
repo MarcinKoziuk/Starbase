@@ -273,12 +273,8 @@ C& TENTITYMANAGER_DECL::AddComponent(Entity& ent, Args&&... args)
 	C* comPtr = nullptr;
 
 	if (SB_LIKELY(!ent.isnew)) {
-		const auto oldComponents = ent.bitset;
-
 		comPtr = &AddComponentExistingImpl<C, Args...>(ent, std::forward<Args>(args)...);
 
-		// send signal
-		componentAdded.emit(ent, oldComponents);
         m_eventManager.template Emit<C, component_added>(ent, *comPtr);
 	}
 	else {
@@ -297,12 +293,6 @@ void TENTITYMANAGER_DECL::RemoveComponent(Entity& ent)
 	if (SB_LIKELY(ent.template GetBit<C>())) {
 		if (SB_LIKELY(!ent.isnew)) {
 			C& comp = ent.template GetComponent<C>();
-
-			auto newComponents = ent.bitset;
-			Entity::template SetBit<C>(newComponents, false);
-
-			// send signal
-			componentWillBeRemoved.emit(ent, newComponents);
 
 			ent.template SetBit<C>(false); // do it before emitting the event
             m_eventManager.template Emit<C, component_removed>(ent, comp);

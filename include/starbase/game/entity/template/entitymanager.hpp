@@ -5,8 +5,6 @@
 #include <unordered_map>
 #include <tuple>
 
-#include <wink/signal.hpp>
-
 #include <starbase/starbase.hpp>
 
 #include "component_list.hpp"
@@ -103,9 +101,6 @@ private:
 	void RemoveComponent(Entity& ent);
 
 public:
-	wink::signal<std::function<void(Entity& entity, component_bitset oldComponents)>> componentAdded;
-	wink::signal<std::function<void(Entity& entity, component_bitset newComponents)>> componentWillBeRemoved;
-
 	TEntityManager(TEventManagerBase<CL>& eventManager);
 
 	Entity& GetEntity(entity_id id);
