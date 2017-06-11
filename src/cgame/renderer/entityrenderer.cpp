@@ -55,17 +55,6 @@ bool EntityRenderer::LineShader::Init(LineShader& dest, IFilesystem& fs)
 	return true;
 }
 
-bool EntityRenderer::Init()
-{
-	if (!PathShader::Init(m_pathShader, m_filesystem))
-		return false;
-
-	if (!LineShader::Init(m_lineShader, m_filesystem))
-		return false;
-
-	return true;
-}
-
 EntityRenderer::ModelGL::ModelGL(const Model& model)
 	: refcount(1L)
 {
@@ -171,10 +160,35 @@ EntityRenderer::BodyGL::BodyGL(const Body& body)
 	centerVBO = MakeVBO(GL_ARRAY_BUFFER, &vals, sizeof(vals) * sizeof(float), GL_STATIC_DRAW);
 }
 
-EntityRenderer::EntityRenderer(IFilesystem& fs, const RenderParams& renderParams)
+EntityRenderer::EntityRenderer(IFilesystem& fs, const RenderParams& renderParams, EventManager& eventManager)
 	: m_filesystem(fs)
 	, m_renderParams(renderParams)
-{}
+	, m_eventManager(eventManager)
+{
+	eventManager.Connect<Physics, EventManager::component_added>([this](Entity& ent, Physics& phys) {
+		PhysicsAdded(phys);
+	});
+	eventManager.Connect<Physics, EventManager::component_removed>([this](Entity& ent, Physics& phys) {
+		PhysicsRemoved(phys);
+	});
+	eventManager.Connect<Renderable, EventManager::component_added>([this](Entity& ent, Renderable& rend) {
+		RenderableAdded(rend);
+	});
+	eventManager.Connect<Renderable, EventManager::component_removed>([this](Entity& ent, Renderable& rend) {
+		RenderableRemoved(rend);
+	});
+}
+
+bool EntityRenderer::Init()
+{
+	if (!PathShader::Init(m_pathShader, m_filesystem))
+		return false;
+
+	if (!LineShader::Init(m_lineShader, m_filesystem))
+		return false;
+
+	return true;
+}
 
 void EntityRenderer::RenderableAdded(const Renderable& rend)
 {

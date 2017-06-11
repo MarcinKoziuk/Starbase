@@ -21,11 +21,6 @@ public:
     using Entity = TEntity<CL>;
 
 	using component_bitset = typename TEntity<CL>::component_bitset;
-	/*
-	using component_signals = typename CL::template signal_type<Entity>;
-
-	template<typename C>
-	using component_signal = typename CL::template signal_type_one<Entity, C>;*/
 
 	friend Entity;
 
@@ -71,19 +66,7 @@ private:
 
 	template<typename C>
 	std::unordered_map<entity_id, int>& GetComponentsIndex();
-	/*
-	template<typename C>
-    component_signal<C>& GetComponentAddedSignal();
-
-	template<typename C>
-	component_signal<C>& GetComponentRemovedSignal();
-
-	template<typename C>
-	void EmitComponentAddedSignal(Entity&, C&);
-
-	template<typename C>
-	void EmitComponentRemovedSignal(Entity&, C&);*/
-
+	
 	template<typename C>
 	C& GetComponentExistingImpl(entity_id id);
 
@@ -120,10 +103,6 @@ private:
 	void RemoveComponent(Entity& ent);
 
 public:
-	/*component_signals componentAdded2;
-	component_signals componentRemoved2;
-	wink::signal<std::function<void(Entity& entity)>> entityAdded;
-	wink::signal<std::function<void(Entity& entity)>> entityWillBeRemoved;*/
 	wink::signal<std::function<void(Entity& entity, component_bitset oldComponents)>> componentAdded;
 	wink::signal<std::function<void(Entity& entity, component_bitset newComponents)>> componentWillBeRemoved;
 
@@ -148,26 +127,6 @@ public:
 	void RemoveEntity(Entity& ent);
 
 	void Update();
-	/*
-	// Due to a MSVC compiler issue, these can not have a separate definition in entitymanager.inl (error C2244)
-	template<typename E, typename std::enable_if<!std::is_base_of<entity_event, E>::value, entity_event>::type* = nullptr, typename... Args>
-	void Connect(Args&&...)
-	{
-		assert(false);
-	}
-
-	template<typename E, typename std::enable_if<std::is_base_of<entity_added, E>::value, entity_added>::type* = nullptr, typename... Args>
-	void Connect(Args&&... args)
-	{
-		entityAdded.connect(std::forward<Args>(args)...);
-	}
-
-	template<typename E, typename std::enable_if<std::is_base_of<entity_removed, E>::value, entity_removed>::type* = nullptr, typename... Args>
-	void Connect(Args&&... args)
-	{
-        entityWillBeRemoved.connect(std::forward<Args>(args)...);
-	}
-	*/
 };
 
 } // namespace Starbase

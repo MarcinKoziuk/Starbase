@@ -12,6 +12,7 @@
 
 #include <starbase/game/fwd.hpp>
 #include <starbase/game/fs/ifilesystem.hpp>
+#include <starbase/game/entity/eventmanager.hpp>
 
 #include <starbase/cgame/fwd.hpp>
 #include <starbase/cgame/renderer/entityrenderer.hpp>
@@ -66,21 +67,13 @@ public:
 
 	RenderParams m_renderParams;
 
-	Renderer(Display& display, IFilesystem& filesystem, ResourceLoader& rl);
+	Renderer(Display&, IFilesystem&, ResourceLoader&, EventManager&);
 
 	~Renderer() {}
 
 	bool Init();
 
 	void Shutdown();
-
-	void RenderableAdded(const Renderable& rend);
-
-	void RenderableRemoved(const Renderable& rend);
-
-	void PhysicsAdded(const Physics& phys);
-
-	void PhysicsRemoved(const Physics& phys);
 
 	void BeginDraw();
 

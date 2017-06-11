@@ -66,56 +66,12 @@ public:
 		: m_entityManager(m_eventManager)
 		, m_display(display)
 		, m_resourceLoader(fs)
-		, m_renderer(display, fs, m_resourceLoader)
+		, m_renderer(display, fs, m_resourceLoader, m_eventManager)
+		, m_cpPhysics(m_eventManager)
 		, m_shipControlsSystem(m_entityManager, m_resourceLoader)
         , m_fs(fs)
 	{
 		m_renderer.Init();
-
-		TextEvent te("jappie");
-		m_eventManager.Connect<TextEvent>([&](const TextEvent& te) {
-			LOG(info) << "___________" + te.text + "____________";
-		});
-		m_eventManager.Emit<TextEvent>(te);
-
-		m_eventManager.Connect<EventManagerBase::entity_added>([&](const Entity& ent) {
-			if (ent.HasComponent<Renderable>()) {
-				m_renderer.RenderableAdded(ent.GetComponent<Renderable>());
-			}
-			if (ent.HasComponents<Transform, Physics>()) {
-				m_renderer.PhysicsAdded(ent.GetComponent<Physics>());
-				m_cpPhysics.PhysicsAdded(ent, ent.GetComponent<Transform>(), ent.GetComponent<Physics>());
-			}
-		});
-
-		m_eventManager.Connect<EventManager::entity_removed>([&](const Entity& ent) {
-			if (ent.HasComponent<Renderable>()) {
-				m_renderer.RenderableRemoved(ent.GetComponent<Renderable>());
-			}
-			if (ent.HasComponents<Transform, Physics>()) {
-				m_renderer.PhysicsRemoved(ent.GetComponent<Physics>());
-				m_cpPhysics.PhysicsRemoved(ent, ent.GetComponent<Transform>(), ent.GetComponent<Physics>());
-			}
-		});
-
-		m_entityManager.componentAdded.connect([this](const Entity& ent, Entity::component_bitset oldComponents) {
-			if (ent.HasComponent<Renderable>() && !Entity::HasComponent<Renderable>(oldComponents)) {
-				m_renderer.RenderableAdded(ent.GetComponent<Renderable>());
-			}
-			if (ent.HasComponents<Transform, Physics>() && !ent.HasComponents<Transform, Physics>()) {
-				m_renderer.PhysicsAdded(ent.GetComponent<Physics>());
-				m_cpPhysics.PhysicsAdded(ent, ent.GetComponent<Transform>(), ent.GetComponent<Physics>());
-			}
-		});
-		m_entityManager.componentWillBeRemoved.connect([this](const Entity& ent, Entity::component_bitset newComponents) {
-			if (ent.HasComponent<Renderable>() && !Entity::HasComponent<Renderable>(newComponents)) {
-				m_renderer.RenderableRemoved(ent.GetComponent<Renderable>());
-			}
-			if (ent.HasComponents<Transform, Physics>() && !ent.HasComponents<Transform, Physics>()) {
-				m_renderer.PhysicsRemoved(ent.GetComponent<Physics>());
-				m_cpPhysics.PhysicsRemoved(ent, ent.GetComponent<Transform>(), ent.GetComponent<Physics>());
-			}
-		});
 
 		AddTestShip(ID("models/planets/simple"), glm::vec2(0.f, -50.f), 0, 1.4f);
 		//AddTestShip(ID("models/ships/interceptor-0"), glm::vec2(80.f, 80.f), 0.f, 2.f);

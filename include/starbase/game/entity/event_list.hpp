@@ -12,14 +12,14 @@ struct TextEvent {
 };
 
 template<typename Entity>
-struct CollisionEvent {
+struct TCollisionEvent {
 	Entity& first;
 	Entity& second;
 
-	CollisionEvent(Entity& first, Entity& second) : first(first), second(second) {}
+	TCollisionEvent(Entity& first, Entity& second) : first(first), second(second) {}
 };
 
 template<typename Entity>
-using EventList = TEventList<TextEvent, CollisionEvent<Entity>>;
+using EventList = TEventList<TextEvent, TCollisionEvent<Entity>>;
 
 } // namespace Starbase

@@ -6,6 +6,8 @@
 #include <starbase/gl.hpp>
 
 #include <starbase/game/fwd.hpp>
+#include <starbase/game/entity/eventmanager.hpp>
+
 #include <starbase/cgame/fwd.hpp>
 #include <starbase/cgame/renderer/renderparams.hpp>
 #include <starbase/cgame/renderer/camera.hpp>
@@ -90,6 +92,7 @@ public:
 private:
 	IFilesystem& m_filesystem;
 	const RenderParams& m_renderParams;
+	EventManager& m_eventManager;
 
 	LineShader m_lineShader;
 	PathShader m_pathShader;
@@ -102,11 +105,6 @@ private:
 
 	void DebugDraw(const Entity& ent, const Transform& trans, const Physics& physics);
 
-public:
-	EntityRenderer(IFilesystem& fs, const RenderParams& renderParams);
-
-	bool Init();
-
 	void RenderableAdded(const Renderable& rend);
 
 	void RenderableRemoved(const Renderable& rend);
@@ -114,6 +112,11 @@ public:
 	void PhysicsAdded(const Physics& phys);
 
 	void PhysicsRemoved(const Physics& phys);
+
+public:
+	EntityRenderer(IFilesystem& fs, const RenderParams& renderParams, EventManager& eventManager);
+
+	bool Init();
 
 	void Draw(const ComponentGroup& cg);
 };

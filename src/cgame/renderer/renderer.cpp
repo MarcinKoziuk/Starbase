@@ -24,11 +24,11 @@
 
 namespace Starbase {
 
-Renderer::Renderer(Display& display, IFilesystem& filesystem, ResourceLoader& rl)
-	: m_filesystem(filesystem)
+Renderer::Renderer(Display& display, IFilesystem& fs, ResourceLoader& rl, EventManager& eventManager)
+	: m_filesystem(fs)
 	, m_display(display)
 	, m_resourceLoader(rl)
-	, m_entityRenderer(m_filesystem, m_renderParams)
+	, m_entityRenderer(m_filesystem, m_renderParams, eventManager)
 {
 	m_renderParams.windowSize = m_display.GetWindowSize();
 	m_renderParams.debug = false;
@@ -194,26 +194,6 @@ bool Renderer::Init()
 
 void Renderer::Shutdown()
 {}
-
-void Renderer::RenderableAdded(const Renderable& rend)
-{
-	m_entityRenderer.RenderableAdded(rend);
-}
-
-void Renderer::RenderableRemoved(const Renderable& rend)
-{
-	m_entityRenderer.RenderableRemoved(rend);
-}
-
-void Renderer::PhysicsAdded(const Physics& phys)
-{
-	m_entityRenderer.PhysicsAdded(phys);
-}
-
-void Renderer::PhysicsRemoved(const Physics& phys)
-{
-	m_entityRenderer.PhysicsRemoved(phys);
-}
 
 void Renderer::BeginDraw()
 {

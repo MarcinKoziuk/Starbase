@@ -5,6 +5,7 @@
 
 #include <starbase/game/id.hpp>
 #include <starbase/game/entity/entity.hpp>
+#include <starbase/game/entity/eventmanager.hpp>
 #include <starbase/game/component/physics.hpp>
 #include <starbase/game/component/transform.hpp>
 
@@ -14,6 +15,8 @@ namespace Starbase {
 
 class PhysicsSystem {
 private:
+	EventManager& m_eventManager;
+
 	std::unordered_map<id_t, std::shared_ptr<cpSpace>> m_spaces;
 
 	void InitSpace(id_t spaceId);
@@ -22,6 +25,9 @@ private:
 
 	void ApplyGravity(cpSpace* space, float dt);
 public:
+	PhysicsSystem(EventManager& eventManager);
+
+	~PhysicsSystem();
 
 	void PhysicsAdded(const Entity& ent, Transform& transf, Physics& physics);
 
@@ -30,8 +36,6 @@ public:
 	void Simulate(float dt);
 
 	void Update(Entity& ent, Transform& transf, Physics& physics);
-
-	~PhysicsSystem();
 };
 
 } // namespace Starbase

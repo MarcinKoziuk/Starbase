@@ -8,7 +8,7 @@ namespace Starbase {
 CGame::CGame(Display& display, IFilesystem& filesystem)
 	: Game(filesystem)
 	, m_display(display)
-	, m_renderer(display, filesystem, m_resourceLoader)
+	, m_renderer(display, filesystem, m_resourceLoader, m_eventManager)
 {}
 
 bool CGame::Init()

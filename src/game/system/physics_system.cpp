@@ -8,6 +8,17 @@ namespace Starbase {
 
 static const cpTransform tzero = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
 
+PhysicsSystem::PhysicsSystem(EventManager& eventManager)
+	: m_eventManager(eventManager)
+{
+	eventManager.Connect<Physics, EventManager::component_added>([this](Entity& ent, Physics& physics) {
+		this->PhysicsAdded(ent, ent.GetComponent<Transform>(), physics);
+	});
+	eventManager.Connect<Physics, EventManager::component_removed>([this](Entity& ent, Physics& physics) {
+		this->PhysicsRemoved(ent, ent.GetComponent<Transform>(), physics);
+	});
+}
+
 void PhysicsSystem::InitSpace(id_t spaceId)
 {
 	m_spaces.insert(

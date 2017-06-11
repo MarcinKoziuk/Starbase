@@ -43,35 +43,7 @@ std::vector<C*>& TENTITYMANAGER_DECL::GetComponentsFree()
 {
 	return std::get<std::vector<C*>>(m_componentsFree);
 }
-/*
-TENTITYMANAGER_TEMPLATE
-template<typename C>
-auto TENTITYMANAGER_DECL::GetComponentAddedSignal() -> component_signal<C>&
-{
-	return std::get<component_signal<C>>(componentAdded2);
-}
 
-TENTITYMANAGER_TEMPLATE
-template<typename C>
-auto TENTITYMANAGER_DECL::GetComponentRemovedSignal() -> component_signal<C>&
-{
-	return std::get<component_signal<C>>(componentRemoved2);
-}
-
-TENTITYMANAGER_TEMPLATE
-template<typename C>
-void TENTITYMANAGER_DECL::EmitComponentAddedSignal(Entity& ent, C& comp)
-{
-	GetComponentAddedSignal<C>().emit(ent, comp);
-}
-
-TENTITYMANAGER_TEMPLATE
-template<typename C>
-void TENTITYMANAGER_DECL::EmitComponentRemovedSignal(Entity& ent, C& comp)
-{
-	GetComponentRemovedSignal<C>().emit(ent, comp);
-}
-*/
 TENTITYMANAGER_TEMPLATE
 template<typename C>
 std::unordered_map<entity_id, int>& TENTITYMANAGER_DECL::GetComponentsIndex()
@@ -159,8 +131,7 @@ TENTITYMANAGER_TEMPLATE
 void TENTITYMANAGER_DECL::RemoveComponentsNew(Entity& ent)
 {
 	TMP::ForEach<typename CL::types>([&](auto type_holder) {
-		(void)type_holder;
-		using C = typename decltype(type_holder)::type;
+		(void)type_holder; using C = typename decltype(type_holder)::type;
 		if (ent.template HasComponent<C>())
             this->RemoveComponentNewImpl<C>(ent);
 	});
@@ -170,8 +141,7 @@ TENTITYMANAGER_TEMPLATE
 void TENTITYMANAGER_DECL::RemoveComponentsExisting(Entity& ent)
 {
 	TMP::ForEach<typename CL::types>([&](auto type_holder) {
-		(void)type_holder;
-		using C = typename decltype(type_holder)::type;
+		(void)type_holder; using C = typename decltype(type_holder)::type;
 		if (ent.template HasComponent<C>())
             this->RemoveComponentExistingImpl<C>(ent);
 	});
@@ -333,6 +303,8 @@ void TENTITYMANAGER_DECL::RemoveComponent(Entity& ent)
 
 			// send signal
 			componentWillBeRemoved.emit(ent, newComponents);
+
+			ent.template SetBit<C>(false); // do it before emitting the event
             m_eventManager.template Emit<C, component_removed>(ent, comp);
 
 			RemoveComponentExistingImpl<C>(ent.id);
@@ -367,8 +339,7 @@ void TENTITYMANAGER_DECL::Update()
 
 		// Do the same for its belonging components
 		TMP::ForEach<typename CL::types>([&](auto type_holder) {
-			(void)type_holder;
-			using C = typename decltype(type_holder)::type;
+			(void)type_holder; using C = typename decltype(type_holder)::type;
 
             auto& components = this->GetComponents<C>();
             auto& componentsNew = this->GetComponentsNew<C>();
@@ -385,6 +356,17 @@ void TENTITYMANAGER_DECL::Update()
 
 		// Send signal
         m_eventManager.template Emit<entity_added>(ent);
+
+		// Send component signals (only after they've all been added)
+		TMP::ForEach<typename CL::types>([&](auto type_holder) {
+			(void)type_holder; using C = typename decltype(type_holder)::type;
+			
+			if (ent.template HasComponent<C>()) {
+				C& com = ent.template GetComponent <C>();
+
+				m_eventManager.template Emit<C, component_added>(ent, com);
+			}
+		});
 	}
 
 	for (Entity& ent : m_entities) {
