@@ -2,8 +2,8 @@
 
 #include <memory>
 
+#include <starbase/game/id.hpp>
 #include <starbase/game/fs/ifilesystem.hpp>
-
 #include <starbase/game/resource/resourceloader.hpp>
 #include <starbase/game/entity/entity.hpp>
 #include <starbase/game/entity/entitymanager.hpp>
@@ -11,6 +11,7 @@
 
 #include <starbase/game/system/physics_system.hpp>
 #include <starbase/game/system/shipcontrols_system.hpp>
+#include <starbase/game/system/autodestruct_system.hpp>
 
 namespace Starbase {
 
@@ -23,13 +24,22 @@ protected:
 
 	PhysicsSystem m_physicsSystem;
 	ShipControlsSystem m_shipControlsSystem;
+	AutoDestructSystem m_autoDestructSystem;
+
+	int m_step;
+
+	static constexpr id_t TEST_SPACE = IDC("TEST_SPACE");
 
 public:
 	Game(IFilesystem& filesystem);
 
+	virtual ~Game() {}
+
 	virtual bool Init();
 
-	virtual ~Game() {}
+	void Update();
 };
+
+std::unique_ptr<IFilesystem> InitFilesystem();
 
 } // namespace Starbase

@@ -119,7 +119,12 @@ void TENTITYMANAGER_DECL::RemoveComponentExistingImpl(Entity& ent)
 	auto& componentsIndex = GetComponentsIndex<C>();
 
 	C& com = components[componentsIndex[ent.id]];
-	com = C{}; // clear component to force destructor to be called
+
+	// Clear component to free any relating handles immediately
+	// Don't clear by reassignment!; that causes unique_ptr destructors to be called
+	// in the wrong order
+	(&com)->~C();
+	new (&com) C{};
 
 	componentsFree.push_back(&com);
     componentsIndex.erase(ent.id);

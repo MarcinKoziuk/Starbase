@@ -5,6 +5,7 @@ namespace Starbase {
 	struct Physics;
     struct Transform;
 	struct ShipControls;
+	struct AutoDestruct;
     
     class Display;
     class Renderer;

@@ -18,7 +18,7 @@ cpBodyApplyTorque(cpBody *body, cpFloat torque)
 	cpBodyApplyImpulseAtLocalPoint(body, cpv(0.0, -torque), cpv(-1.0 + c.x, c.y));
 }
 
-void ShipControlsSystem::SpawnBullet(const glm::vec2& pos, const glm::vec2& vel)
+void ShipControlsSystem::SpawnBullet(int step, const id_t spaceId, const glm::vec2& pos, const glm::vec2& vel)
 {
 	ResourcePtr<Model> model = m_resourceLoader.Load<Model>(ID("models/bullets/bullet-0"));
 	ResourcePtr<Body> body = m_resourceLoader.Load<Body>(ID("models/bullets/bullet-0"));
@@ -29,10 +29,11 @@ void ShipControlsSystem::SpawnBullet(const glm::vec2& pos, const glm::vec2& vel)
 	transf.scale = glm::vec2(10.f, 10.f);
 	transf.vel = vel;
 
-    m_em.CreateEntity<Transform, Renderable, Physics>(
+    m_em.CreateEntity<Transform, Renderable, Physics, AutoDestruct>(
         Transform(transf),
 		Renderable{model},
-		Physics{ID("default"), body}
+		Physics{spaceId, body},
+		AutoDestruct(step, 400)
 	);
 
 	/*
@@ -67,8 +68,8 @@ static std::pair<glm::vec2, glm::vec2> GetBulletSpawnPosAndVel(Entity& ent, cons
 		pos += transf.pos;
 
 		glm::vec2 vel(
-			100.0 * std::cos(transf.rot - 1.5708),
-			100.0 * std::sin(transf.rot - 1.5708)
+			160.0 * std::cos(transf.rot - 1.5708),
+			160.0 * std::sin(transf.rot - 1.5708)
 		);
 
 		vel += transf.vel;
@@ -80,7 +81,7 @@ static std::pair<glm::vec2, glm::vec2> GetBulletSpawnPosAndVel(Entity& ent, cons
 	}
 }
 
-void ShipControlsSystem::Update(Entity& ent, const Transform& transf, Physics& phys, ShipControls& scontrols)
+void ShipControlsSystem::Update(int step, Entity& ent, const Transform& transf, Physics& phys, ShipControls& scontrols)
 {
 	cpBody* body = phys.cp.body.get();
 
@@ -101,7 +102,7 @@ void ShipControlsSystem::Update(Entity& ent, const Transform& transf, Physics& p
 	if (scontrols.actionFlags.firePrimary) {
 		scontrols.actionFlags.firePrimary = false;
 		std::pair<glm::vec2, glm::vec2> ret = GetBulletSpawnPosAndVel(ent, transf, phys);
-		SpawnBullet(ret.first, ret.second);
+		SpawnBullet(step, phys.spaceId, ret.first, ret.second);
 	}
 }
 

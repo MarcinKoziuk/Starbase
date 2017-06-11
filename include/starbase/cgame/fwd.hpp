@@ -18,4 +18,9 @@ namespace Starbase {
 	// Resources
     class Model;
 	class Body;
+
+	// UI
+	namespace UI {
+		class MainWindow;
+	}
 }
