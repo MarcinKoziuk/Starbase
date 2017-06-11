@@ -40,12 +40,24 @@ void PhysicsSystem::InitBody(const Entity& ent, Transform& transf, Physics& phys
 	cpFloat moment = 0.0;
 	cpFloat mass = bodyResource.GetMass();
 	for (const auto& poly : bodyResource.GetPolygonShapes()) {
-		moment += cpMomentForPoly(mass, poly.size(), (cpVect*) &poly.front(), cpvzero, 0.0);
+		moment += cpMomentForPoly(
+			mass,
+			static_cast<int>(poly.size()),
+			reinterpret_cast<const cpVect*>(&poly.front()),
+			cpvzero,
+			0.0
+		);
 
 		cpTransform trans = cpTransformIdentity;
 		trans = cpTransformMult(trans, cpTransformScale(transf.scale.x, transf.scale.y));
 
-		cpShape* shape = cpPolyShapeNew(body, poly.size(), (cpVect*) &poly.front(), trans, 0.0);
+		cpShape* shape = cpPolyShapeNew(
+			body,
+			static_cast<int>(poly.size()),
+			reinterpret_cast<const cpVect*>(&poly.front()),
+			trans,
+			0.0
+		);
 		/*cpShapeSetMass(shape, 1.0);
 		cpShapeSetDensity(shape, 1.0);
 		cpShapeSetDensity(shape, 1.0);
@@ -156,7 +168,7 @@ void PhysicsSystem::Update(Entity& ent, Transform& transf, Physics& phys)
 {
 	cpBody* body = phys.cp.body.get();
 	transf.pos = to_vec2f(cpBodyGetPosition(body));
-	transf.rot = cpvtoangle(cpBodyGetRotation(body));
+	transf.rot = static_cast<float>(cpvtoangle(cpBodyGetRotation(body)));
 	transf.vel = to_vec2f(cpBodyGetVelocity(body));
 }
 

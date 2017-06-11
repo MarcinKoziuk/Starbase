@@ -1,3 +1,6 @@
+#include <cassert>
+#include <limits>
+
 #include <streambuf>
 #include <string>
 #include <string.h>
@@ -17,7 +20,10 @@ private:
 		if (PHYSFS_eof(file)) {
 			return traits_type::eof();
 		}
-		size_t bytesRead = PHYSFS_read(file, buffer, 1, bufferSize);
+
+		assert(bufferSize < std::numeric_limits<PHYSFS_uint32>::max());
+
+		size_t bytesRead = PHYSFS_read(file, buffer, 1, static_cast<PHYSFS_uint32>(bufferSize));
 		if (bytesRead < 1) {
 			return traits_type::eof();
 		}
@@ -64,7 +70,11 @@ private:
 		if (pptr() == pbase() && c == traits_type::eof()) {
 			return 0; // no-op
 		}
-		if (PHYSFS_write(file, pbase(), pptr() - pbase(), 1) < 1) {
+
+		std::ptrdiff_t offs = pptr() - pbase();
+		assert(offs < std::numeric_limits<PHYSFS_uint32>::max());
+
+		if (PHYSFS_write(file, pbase(), static_cast<PHYSFS_uint32>(offs), 1) < 1) {
 			return traits_type::eof();
 		}
 		if (c != traits_type::eof()) {

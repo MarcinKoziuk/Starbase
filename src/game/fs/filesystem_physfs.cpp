@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cassert>
+#include <limits>
 
 #include <physfs.h>
 #include <physfs.hpp>
@@ -124,7 +125,9 @@ bool FilesystemPhysFS::ReadBytes(const std::string& path, std::vector<std::uint8
 		destVector->reserve(length);
 		destVector->resize(length);
 
-		PHYSFS_read(file, &(*destVector)[0], 1, length);
+		assert(length < std::numeric_limits<PHYSFS_uint32>::max());
+
+		PHYSFS_read(file, &(*destVector)[0], 1, static_cast<PHYSFS_uint32>(length));
 		PHYSFS_close(file);
 
 		return true;
@@ -146,12 +149,14 @@ bool FilesystemPhysFS::ReadString(const std::string& path, std::string* destStri
 
 	PHYSFS_File* file = PHYSFS_openRead(path.c_str());
 	if (file) {
-		std::size_t length = PHYSFS_fileLength(file);
+		PHYSFS_sint64 length = PHYSFS_fileLength(file);
 		destString->reserve(length);
 		destString->resize(length);
 
+		assert(length < std::numeric_limits<PHYSFS_uint32>::max());
+
 		// TODO: check 0 termination and optimize reserve() if needed
-		PHYSFS_read(file, &(*destString)[0], 1, length);
+		PHYSFS_read(file, &(*destString)[0], 1, static_cast<PHYSFS_uint32>(length));
 		PHYSFS_close(file);
 
 		return true;

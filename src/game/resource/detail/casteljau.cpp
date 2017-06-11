@@ -9,10 +9,10 @@ static bool IsFlat(const std::vector<glm::vec2>& curve)
 {
     const float tol = 5;
 
-    float ax = 3.0*curve[1][0] - 2.0*curve[0][0] - curve[3][0]; ax *= ax;
-    float ay = 3.0*curve[1][1] - 2.0*curve[0][1] - curve[3][1]; ay *= ay;
-    float bx = 3.0*curve[2][0] - curve[0][0] - 2.0*curve[3][0]; bx *= bx;
-    float by = 3.0*curve[2][1] - curve[0][1] - 2.0*curve[3][1]; by *= by;
+    float ax = 3.f*curve[1][0] - 2.f*curve[0][0] - curve[3][0]; ax *= ax;
+    float ay = 3.f*curve[1][1] - 2.f*curve[0][1] - curve[3][1]; ay *= ay;
+    float bx = 3.f*curve[2][0] - curve[0][0] - 2.f*curve[3][0]; bx *= bx;
+    float by = 3.f*curve[2][1] - curve[0][1] - 2.f*curve[3][1]; by *= by;
 
     return std::max(ax, bx) + std::max(ay, by) <= tol;
 }

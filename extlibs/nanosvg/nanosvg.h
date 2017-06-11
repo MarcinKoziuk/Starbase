@@ -1566,7 +1566,7 @@ static int nsvg__parseAttrEx(NSVGparser* p, const char* name, const char* value,
 
 static int nsvg__parseAttr(NSVGparser* p, const char* name, const char* value)
 {
-	nsvg__parseAttrEx(p, name, value, 0);
+	return nsvg__parseAttrEx(p, name, value, 0);
 }
 
 static int nsvg__parseNameValue(NSVGparser* p, const char* start, const char* end)
