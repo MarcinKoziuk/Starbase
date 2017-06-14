@@ -163,7 +163,7 @@ void main(void)
 	*/
 
 
-	gl_FragColor = texture2D(fboTexture, texcoord) + vec4(sum.rgb, 1.0);
+	//gl_FragColor = texture2D(fboTexture, texcoord) + vec4(sum.rgb, 1.0);
 
 	//gl_FragColor = texture2D(fboTexture, texcoord);
 

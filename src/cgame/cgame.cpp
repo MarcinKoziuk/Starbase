@@ -40,7 +40,7 @@ bool CGame::Init()
 		"models/planets/simple",
 		Transform(
 			glm::vec2(0.f, -50.f),
-			0.f,
+			1.f,
 			glm::vec2(1.4f, 1.4f)
 		)
 	);
@@ -122,6 +122,9 @@ void CGame::CMain()
 		m_mainWindow.Render();
 
 		m_display.Swap();
+
+		if (m_step % 100 == 0)
+			LOG(info) << "FPS: " << 1.0 / frameTime;
 
 		if (!PollEvents()) {
 			// Got SDL_QUIT

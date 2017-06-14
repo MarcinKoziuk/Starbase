@@ -243,8 +243,11 @@ static glm::mat4 CalcMatrix(double alpha, const Transform& trans, const RenderPa
 	projection = glm::ortho(-w / zoom, w / zoom, -h / zoom, h / zoom, -1.0f, 1.0f);;
 
 	const glm::vec2 renderPos(
-		trans.pos.x * float(alpha) + trans.prevPos.x * float(1.0 - alpha),
-		trans.pos.y * float(alpha) + trans.prevPos.y * float(1.0 - alpha)
+		//trans.pos
+		//trans.prevPos + ((trans.pos - trans.prevPos) * float(alpha))
+		trans.pos * float(alpha) + trans.prevPos * float(1.0 - alpha)
+		//trans.pos.x * float(alpha) + trans.prevPos.x * float(1.0 - alpha),
+		//trans.pos.y * float(alpha) + trans.prevPos.y * float(1.0 - alpha)
 	);
 
 	model = glm::translate(model, glm::vec3(renderPos, 0));
@@ -291,7 +294,8 @@ void EntityRenderer::NormalDraw(double alpha, const EntityRenderer::ComponentGro
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE);
+	glBlendFunc(GL_SRC_ALPHA, GL_DST_ALPHA);
+	glBlendEquation(GL_FUNC_ADD);
 
 	for (std::size_t i = 0; i < numPaths; i++) {
 		const Model::Path& path = model.GetPaths()[i];

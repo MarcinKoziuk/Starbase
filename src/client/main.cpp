@@ -15,9 +15,9 @@ int main(int argc, char* argv[])
 	if (!cgame.Init())
 		return 1;
 
-	//////////
+	//////////////
 	cgame.CMain();
-	//////////
+	//////////////
 
 	delete mainWindow.release();
 
