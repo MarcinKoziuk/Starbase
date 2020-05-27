@@ -82,6 +82,20 @@ static std::vector<Model::Path> ShapeToPaths(const NSVGshape* shape, Model::Styl
 		path.closed = svgPath->closed == 1;
 		path.group = group;
 		
+#if 0
+		std::vector<glm::vec2> cubicBezier;
+		for (int i = 0; i < svgPath->npts - 1; i += 3) {
+			float* p = &svgPath->pts[i * 2];
+			cubicBezier.push_back(glm::vec2(p[0], p[1]));
+			cubicBezier.push_back(glm::vec2(p[2], p[3]));
+			cubicBezier.push_back(glm::vec2(p[4], p[5]));
+			cubicBezier.push_back(glm::vec2(p[6], p[7]));
+		}
+
+		path.points = Casteljau(cubicBezier, transform, 0 /*path.closed*/);
+		//path.points = CasteljauRaw(cubicBezier);
+#endif
+
 		for (int i = 0; i < svgPath->npts - 1; i += 3) {
 			float* p = &svgPath->pts[i * 2];
 			std::vector<glm::vec2> cubicBezier;
@@ -90,18 +104,16 @@ static std::vector<Model::Path> ShapeToPaths(const NSVGshape* shape, Model::Styl
 			cubicBezier.push_back(glm::vec2(p[4], p[5]));
 			cubicBezier.push_back(glm::vec2(p[6], p[7]));
 
-			std::vector<glm::vec2> approximatedBezier = Casteljau(cubicBezier);
+			std::vector<glm::vec2> approximatedBezier = Casteljau(cubicBezier, transform, false);
 
-			int iz = 0;
 			for (const auto& p : approximatedBezier) {
-				auto v4 = transform * glm::vec4(p, 1.f, 1.f);
-				const glm::vec2 pt = glm::vec2(v4);
-
-				if (iz % 3 == 0) {
-				path.points.push_back(pt);
-				}
-				iz++;
+				if (path.points.size() == 0 || path.points.back() != p)
+					path.points.push_back(p);
 			}
+		}
+
+		if (path.closed && !path.points.empty() && path.points.front() == path.points.back()) {
+			path.points.pop_back();
 		}
 
 		if (path.points.size() < 2) {
@@ -132,10 +144,10 @@ std::shared_ptr<const Model> Model::MakePlaceholder()
 	p1.style = outer;
 	p1.closed = true;
 	p1.points = {
-		{-1, 1},
-		{-1, -1},
-		{1, -1},
-		{1, 1}
+		{-1.0, 1.0},
+		{-1.0, -1.0},
+		{1.0, -1.0},
+		{1.0, 1.0}
 	};
 
 	// Diagonal \ of X

@@ -5,6 +5,10 @@
 
 #include <cstdint>
 
+#ifndef NDEBUG
+#include <string>
+#endif
+
 namespace Starbase {
 
 typedef std::uint32_t id_t;
@@ -40,6 +44,8 @@ public:
 	operator id_t () const { return id; }
 	const IDD& operator= (const IDD &id) { this->id = id; return *this; }
 
+	static std::string GetString(id_t id);
+
 private:
 	id_t id;
 };
@@ -48,6 +54,7 @@ static id_t ID(const char* str)
 {
 	return IDD(str);
 }
+
 
 #else
 

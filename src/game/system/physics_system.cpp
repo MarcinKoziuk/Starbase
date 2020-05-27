@@ -116,7 +116,7 @@ void PhysicsSystem::PhysicsRemoved(const Entity& ent, Transform& transf, Physics
 
 void PhysicsSystem::ApplyGravity(cpSpace* space, float dt)
 {
-	const static cpFloat gravityConstant = 20;
+	const static cpFloat gravityConstant = 20.0;
 
 	struct gcontext {
 		cpSpace* space;

@@ -163,10 +163,11 @@ void main(void)
 	*/
 
 
-	//gl_FragColor = texture2D(fboTexture, texcoord) + vec4(sum.rgb, 1.0);
+	gl_FragColor = texture2D(fboTexture, texcoord) + vec4(sum.rgb, 1.0);
 
 	//gl_FragColor = texture2D(fboTexture, texcoord);
 
-	vec4 color = apply(fboTexture, texcoord * resolution, resolution);
-	gl_FragColor = color + vec4(sum.rgb, 1.0);
+	//deze tewee
+	//vec4 color = apply(fboTexture, texcoord * resolution, resolution);
+    //gl_FragColor = color + vec4(sum.rgb, 1.0);
 }

@@ -132,32 +132,25 @@ static std::vector<std::vector<cpvec2>> ShapeToPolygons(const NSVGshape* shape, 
 
 		std::vector<cpvec2> points;
 
+		std::vector<glm::vec2> cubicBezier;
 		for (int i = 0; i < path->npts - 1; i += 3) {
 			float* p = &path->pts[i * 2];
-			std::vector<glm::vec2> cubicBezier;
-			cubicBezier.push_back(cpvec2(p[0], p[1]));
-			cubicBezier.push_back(cpvec2(p[2], p[3]));
-			cubicBezier.push_back(cpvec2(p[4], p[5]));
-			cubicBezier.push_back(cpvec2(p[6], p[7]));
+			cubicBezier.push_back(glm::vec2(p[0], p[1]));
+			cubicBezier.push_back(glm::vec2(p[2], p[3]));
+			cubicBezier.push_back(glm::vec2(p[4], p[5]));
+			cubicBezier.push_back(glm::vec2(p[6], p[7]));
+		}
 
-			std::vector<glm::vec2> approximatedBezier = Casteljau(cubicBezier);
-
-			int iz = 0;
-			for (const auto& p : approximatedBezier) {
-				// TODO: we are losing precision here! (Casteljau should return double)
-				const cpvec2 pt = cpvec2(transform * glm::vec4(p, 1.f, 1.f));
-
-				if (iz % 3 == 0) {
-					points.push_back(pt);
-				}
-				iz++;
-			}
+		std::vector<glm::vec2> res = Casteljau(cubicBezier, transform, path->closed);
+		for (const glm::vec2& pt : res) {
+			points.push_back(cpvec2(pt));
 		}
 
 		if (points.size() < 3) {
 			LOG(error) << "SVG body path has less than 3 points " << pathInfo.str();
 			continue;
 		}
+
 		/*if (points.size() > 8) {
 			int reduction = std::ceil((double)points.size() / 8.);
 

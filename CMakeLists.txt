@@ -217,6 +217,7 @@ if (WIN32)
 		${SDL2MAIN_LIBRARY}
 		winmm
 		imm32
+		shcore
 		Version
 	)
 

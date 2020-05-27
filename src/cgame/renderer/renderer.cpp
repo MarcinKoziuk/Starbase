@@ -67,7 +67,7 @@ bool Renderer::InitFramebuffer(Framebuffer& fb, int msaa)
 	GLCALL(glBindRenderbuffer(GL_RENDERBUFFER, fb.rboDepth));
 
 	if (msaa)
-		GLCALL(glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y));
+		GLCALL(glRenderbufferStorageMultisample(GL_RENDERBUFFER, msaa, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y));
 	else
 		GLCALL(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y));
 	GLCALL(glBindRenderbuffer(GL_RENDERBUFFER, 0));

@@ -11,7 +11,7 @@ description
 	supported-dpi 96 192 288 384
 defaults
 	spacing 5
-	text-color #fffff
+	text-color #ffffff
 	placeholder
 		opacity 0.2
 	disabled

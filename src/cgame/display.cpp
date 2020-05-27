@@ -34,7 +34,7 @@ bool Display::Init()
 
     m_window = SDL_CreateWindow(STARBASE_NAME,
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-        1980, 1080,
+        1600, 900,
 		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
     if (m_window == NULL) {

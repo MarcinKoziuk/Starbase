@@ -58,7 +58,7 @@ public:
 		std::vector<glm::vec2> vertices;
 		std::vector<glm::vec2> cornerVects;
 
-		void AddRect(const glm::vec2& p1, const glm::vec2& p2);
+		void AddRect(const glm::vec2& pb, const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& pa);
 		void AddRects(const Model::Path& path);
 		PathGL(const Model::Path& path);
 	};

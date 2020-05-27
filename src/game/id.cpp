@@ -30,6 +30,15 @@ void IDD::Set(const char *string)
 	g_hashed_strings_m.unlock();
 }
 
+std::string IDD::GetString(id_t id)
+{
+	std::string ret;
+	g_hashed_strings_m.lock();
+	ret = g_hashed_strings[id];
+	g_hashed_strings_m.unlock();
+	return ret;
+}
+
 } // namespae Starbase
 
 #endif // NDEBUG

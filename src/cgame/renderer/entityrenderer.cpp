@@ -17,6 +17,8 @@
 #include <starbase/cgame/renderer/glhelpers.hpp>
 #include <starbase/cgame/renderer/entityrenderer.hpp>
 
+#include <starbase/cgame/renderer/stroke.hpp>
+
 namespace Starbase {
 
 using PathShader = EntityRenderer::PathShader;
@@ -63,34 +65,105 @@ EntityRenderer::ModelGL::ModelGL(const Model& model)
 	}
 }
 
-static glm::vec2 MakeCornerVect(const float ang, const glm::vec2& p)
+static glm::vec2 Rotate(const glm::vec2& p, const float ang)
 {
 	const float x = p.x * std::cos(ang) - p.y * std::sin(ang);
 	const float y = p.x * std::sin(ang) + p.y * std::cos(ang);
 	return glm::vec2(x, y);
 }
 
-static std::array<glm::vec2, 4> MakeCornerVects(const glm::vec2& p1, const glm::vec2& p2)
+static float GetAngle(const glm::vec2& v)
+{
+	return std::atan2(v.y, v.x);
+}
+
+static float GetPointAngle(const glm::vec2& p1, const glm::vec2& p2)
+{
+	return std::atan2(p2.y - p1.y, p2.x - p1.x);
+}
+
+static float GetInnerAngle(const glm::vec2& v1, const glm::vec2& v2)
+{
+	return std::atan2(glm::determinant(glm::mat2(v1, v2)), glm::dot(v1, v2));
+}
+
+static std::array<glm::vec2, 4> MakeExtrusionVectors(const glm::vec2& pb, const glm::vec2 p1, const glm::vec2& p2, const glm::vec2& pa)
+{
+	std::array<glm::vec2, 4> extrusionVectors;
+
+	const glm::vec2 line = glm::normalize(p2 - p1);
+	const glm::vec2 normal = glm::normalize(glm::vec2(-line.y, line.x));
+
+	const glm::vec2 tangent1 = (pb == p1) ? line : glm::normalize(glm::normalize(p1 - pb) + line);
+	const glm::vec2 tangent2 = (p2 == pa) ? line : glm::normalize(glm::normalize(pa - p2) + line);
+
+	const glm::vec2 miter1 = glm::vec2(-tangent1.y, tangent1.x);
+	const glm::vec2 miter2 = glm::vec2(-tangent2.y, tangent2.x);
+
+	const float thickness = 0.2;
+	const float length1 = thickness / glm::dot(miter1, normal);
+	const float length2 = thickness / glm::dot(normal, miter2);
+
+	extrusionVectors[0] = - length1 * miter1;
+	extrusionVectors[1] = length1 * miter1;
+	extrusionVectors[2] = - length2 * miter2;
+	extrusionVectors[3] = length2 * miter2;
+
+	return extrusionVectors;
+}
+
+static std::array<glm::vec2, 4> MakeExtrusionVectors_(const glm::vec2& pb, const glm::vec2 p1, const glm::vec2& p2, const glm::vec2& pa)
+{
+	std::array<glm::vec2, 4> extrusionVectors;
+
+	const glm::vec2 vb(p1 - pb);
+	const glm::vec2 v(p2 - p1);
+	const glm::vec2 va(pa - p2);
+
+	const float a1 = GetInnerAngle(vb, v);
+	const float a2 = GetInnerAngle(v, va);
+	
+	const float ang = GetPointAngle(p1, p2);
+
+	const float dot1 = glm::dot(vb, v);
+	const float dot2 = glm::dot(v, va);
+
+	const float miter1a = a1 / 2.f;
+	const float miter2a = a2 / 2.f;
+
+	const float scherpte1 = std::max(1.f, std::min(1.f / std::cos(miter1a), 5.f));
+	const float scherpte2 = std::max(1.f, std::min(1.f / std::cos(miter2a), 5.f));
+
+	extrusionVectors[0] = Rotate(glm::vec2(std::sin(miter1a), std::cos(miter1a)), ang) * scherpte1;
+	extrusionVectors[1] = -Rotate(glm::vec2(std::sin(miter1a), std::cos(miter1a)), ang) * scherpte1;
+	extrusionVectors[2] = Rotate(glm::vec2(-std::sin(miter2a), std::cos(miter2a)), ang) * scherpte2;
+	extrusionVectors[3] = -Rotate(glm::vec2(-std::sin(miter2a), std::cos(miter2a)), ang) * scherpte2;
+	
+	return extrusionVectors;
+}
+
+static std::array<glm::vec2, 4> MakeCornerVectors(const glm::vec2& p1, const glm::vec2& p2)
 {
 	std::array<glm::vec2, 4> cornerVecs;
 
-	const float ang = std::atan2(p2.y - p1.y, p2.x - p1.x);
-	cornerVecs[0] = MakeCornerVect(ang, glm::vec2(0, 1));
-	cornerVecs[1] = MakeCornerVect(ang, glm::vec2(0, -1));
-	cornerVecs[2] = MakeCornerVect(ang, glm::vec2(0, 1));
-	cornerVecs[3] = MakeCornerVect(ang, glm::vec2(0, -1));
+	const float ang = GetPointAngle(p1, p2);
+	cornerVecs[0] = Rotate(glm::vec2(0, 1), ang);
+	cornerVecs[1] = Rotate(glm::vec2(0, -1), ang);
+	cornerVecs[2] = Rotate(glm::vec2(0, 1), ang);
+	cornerVecs[3] = Rotate(glm::vec2(0, -1), ang);
 
 	return cornerVecs;
 }
 
-void EntityRenderer::PathGL::AddRect(const glm::vec2& p1, const glm::vec2& p2)
+void EntityRenderer::PathGL::AddRect(const glm::vec2& pb, const glm::vec2& p1, const glm::vec2& p2,  const glm::vec2& pa)
 {
 	static const GLushort indexes[] = {
 		0, 1, 2,
 		1, 2, 3
 	};
 
-	std::array<glm::vec2, 4> cornerVecs = MakeCornerVects(p1, p2);
+	//std::array<glm::vec2, 4> unitVecs = MakeCornerVectors(p1, p2);
+	std::array<glm::vec2, 4> cornerVecs = MakeExtrusionVectors(pb, p1, p2, pa);
 	std::size_t indexOffset = vertices.size();
 
 	assert((indexOffset + 4) < std::numeric_limits<GLushort>::max());
@@ -100,7 +173,7 @@ void EntityRenderer::PathGL::AddRect(const glm::vec2& p1, const glm::vec2& p2)
 	vertices.push_back(p2);
 	vertices.push_back(p2);
 
-	for (const glm::vec2 cornerVec : cornerVecs) {
+	for (const glm::vec2& cornerVec : cornerVecs) {
 		cornerVects.push_back(cornerVec);
 	}
 
@@ -114,12 +187,22 @@ void EntityRenderer::PathGL::AddRects(const Model::Path& path)
 	for (std::size_t i = 0; i < (path.points.size() - 1); i++) {
 		const glm::vec2& p1 = path.points[i];
 		const glm::vec2& p2 = path.points[i + 1];
+		const glm::vec2& pb = (i > 0)
+			? path.points[i - 1]
+			: (path.closed ? path.points.back() : p1);
+		const glm::vec2& pa = ((i + 2) < path.points.size())
+			? path.points[i + 2]
+			: (path.closed ? path.points.front() : p2);
 
-		AddRect(p1, p2);
+		AddRect(pb, p1, p2, pa);
 	}
 
 	if (path.closed && !path.points.empty()) {
-		AddRect(path.points.back(), path.points.front());
+		if (path.points.size() >= 3)
+			AddRect(*(path.points.rbegin() + 1), path.points.back(), path.points.front(), *(path.points.begin()+1));
+		else
+			// ?
+			AddRect(path.points.back(), path.points.back(), path.points.front(), path.points.front());
 	}
 }
 
@@ -242,10 +325,13 @@ static glm::mat4 CalcMatrix(double alpha, const Transform& trans, const RenderPa
 
 	projection = glm::ortho(-w / zoom, w / zoom, -h / zoom, h / zoom, -1.0f, 1.0f);;
 
+	const glm::vec2 entityVel = trans.pos - trans.prevPos;
+	const glm::vec2 cameraVel;// renderParams.offset - renderParams.prevOffset;
+
 	const glm::vec2 renderPos(
 		//trans.pos
-		//trans.prevPos + ((trans.pos - trans.prevPos) * float(alpha))
-		trans.pos * float(alpha) + trans.prevPos * float(1.0 - alpha)
+		trans.prevPos + ((entityVel + cameraVel) * float(alpha))
+		//trans.pos * float(alpha) + trans.prevPos * float(1.0 - alpha)
 		//trans.pos.x * float(alpha) + trans.prevPos.x * float(1.0 - alpha),
 		//trans.pos.y * float(alpha) + trans.prevPos.y * float(1.0 - alpha)
 	);
@@ -340,7 +426,7 @@ void EntityRenderer::NormalDraw(double alpha, const EntityRenderer::ComponentGro
 		GLCALL(glEnableVertexAttribArray(m_pathShader.attributes.cornerVect));
 
 		GLCALL(glDrawElements(
-			GL_TRIANGLE_STRIP,
+			GL_TRIANGLES,
 			(GLsizei)pathGL.indices.size(),
 			GL_UNSIGNED_SHORT,
 			nullptr

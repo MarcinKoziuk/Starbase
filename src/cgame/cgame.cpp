@@ -37,25 +37,39 @@ bool CGame::Init()
 		return false;
 
 	AddTestEntity(
+		//"models/doodads/boxz",
 		"models/planets/simple",
 		Transform(
 			glm::vec2(0.f, -50.f),
-			1.f,
+			0.f,
+			glm::vec2(1.4f, 1.4f)
+		)
+	);
+
+	AddTestEntity(
+		"models/doodads/box",
+		Transform(
+			glm::vec2(20.f, 50.f),
+			0.f,
 			glm::vec2(1.4f, 1.4f)
 		)
 	);
 
 	m_playerEntityId = AddTestEntity(
+		//"models/doodads/boxz",
+		//"models/doodads/boxz",
+		//"models/planets/simple",
 		"models/ships/fighter-1",
 		Transform(
 			glm::vec2(-80.f, 0.f),
-			0.4f
+			0.f
 		)
 	);
 
 	m_entityManager.Update();
 
-	m_camera = Camera(glm::vec2(400, 200));
+	//m_camera = Camera(glm::vec2(400, 200));
+	m_camera = Camera(glm::vec2(4, 4));
 
 	return true;
 }
@@ -208,9 +222,14 @@ bool CGame::HandleSDLEvent(SDL_Event event)
 
 void CGame::Render(double alpha)
 {
+	RenderParams* renderParams = &m_renderer.m_renderParams;
+
 	Entity& playerEntity = m_entityManager.GetEntity(m_playerEntityId);
-	m_camera.Follow(playerEntity.GetComponent<Transform>().pos);
-	m_renderer.m_renderParams.offset = m_camera.m_pos;
+	Transform& transf = playerEntity.GetComponent<Transform>();
+	m_camera.Follow(transf.prevPos + (transf.pos - transf.prevPos) * float(alpha));
+
+	renderParams->prevOffset = renderParams->offset;
+	renderParams->offset = m_camera.m_pos;
 
 	m_renderer.BeginDraw();
 	m_entityManager.ForEachEntityWithComponents<Transform, Renderable>([&](Entity& ent, Transform& trans, Renderable& rend) {
@@ -262,7 +281,7 @@ std::unique_ptr<tb::TBRenderer> InitUI()
 	// Add fonts we can use to the font manager.
 
 
-	tb::g_font_manager->AddFontInfo("ui/fonts/Overpass/Overpass-Regular.ttf", "Overpass");
+	tb::g_font_manager->AddFontInfo("ui/fonts/Overpass/Overpass-SemiBold.ttf", "Overpass");
 	tb::g_font_manager->AddFontInfo("ui/fonts/Exo/Exo-Regular.ttf", "Exo");
 	tb::g_font_manager->AddFontInfo("ui/fonts/Geo/Geo-Regular.ttf", "Geo");
 	//tb::g_font_manager->AddFontInfo("ui/fonts/Muli/Muli-Regular.ttf", "Cantarell");
@@ -271,7 +290,7 @@ std::unique_ptr<tb::TBRenderer> InitUI()
 	// Set the default font description for widgets to one of the fonts we just added
 	tb::TBFontDescription fd;
 
-	fd.SetID(TBIDC("Geo"));
+	fd.SetID(TBIDC("Overpass"));
 	fd.SetSize(tb::g_tb_skin->GetDimensionConverter()->DpToPx(19));
 	tb::g_font_manager->SetDefaultFontDescription(fd);
 
