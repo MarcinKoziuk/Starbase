@@ -76,6 +76,8 @@ void PhysicsSystem::InitBody(const Entity& ent, Transform& transf, Physics& phys
 	if (moment) cpBodySetMoment(body, moment);
 	if (mass) cpBodySetMass(body, mass);
 
+
+	cpSpaceAddBody(space, body);
 	for (auto& it : phys.cp.shapes) {
 		cpShape* shape = it.get();
 
@@ -94,7 +96,7 @@ void PhysicsSystem::InitBody(const Entity& ent, Transform& transf, Physics& phys
 	cpBodySetAngle(body, transf.rot);
 	cpBodySetPosition(body, cpv(transf.pos.x, transf.pos.y));
 
-	cpSpaceAddBody(space, body);
+	
 
 	//cpBodyApplyForceAtWorldPoint(body, to_cpv(transf.vel), cpvzero);
 	cpBodySetVelocity(body, to_cpv(transf.vel));
